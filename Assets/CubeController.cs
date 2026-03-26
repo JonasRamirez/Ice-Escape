@@ -48,11 +48,9 @@ public class CubeController : MonoBehaviour
     public float minScale = 0.05f;
 
     [Tooltip("Velocidad de encogimiento (unidades/segundo)")]
-    public float shrinkRate = 0.04f;
+    public float shrinkRate = 0.0004f;
+    public float shrinkPerSpeed = 0.0000005f;
 
-    // ─────────────────────────────────────────
-    //  FÍSICA
-    // ─────────────────────────────────────────
     [Header("Física")]
     [Tooltip("Masa inicial del cubo")]
     public float initialMass = 2f;
@@ -64,11 +62,13 @@ public class CubeController : MonoBehaviour
     public float gravityScale = 15f;
 
     [Tooltip("Velocidad máxima permitida en espacio mundo")]
-    public float maxSpeed = 12f;
+    public float maxSpeed = 10f;
 
     [Tooltip("Fricción del tablero (reduce velocidad cuando hay poca inclinación)")]
     [Range(0f, 1f)]
     public float surfaceFriction = 0.05f;
+
+    [HideInInspector] public bool reachedGoal = false;
 
     // ─────────────────────────────────────────
     //  ALINEACIÓN AL TABLERO
@@ -112,7 +112,7 @@ public class CubeController : MonoBehaviour
         trail = GetComponent<TrailRenderer>();
 
         currentScale = initialScale;
-        totalShrinkRange = initialScale - minScale;
+        totalShrinkRange = 20+ initialScale - minScale;
 
         transform.localScale = Vector3.one * currentScale;
 
@@ -174,10 +174,13 @@ public class CubeController : MonoBehaviour
         BoxCollider col = GetComponent<BoxCollider>();
         if (col != null)
         {
-            col.material = new PhysicMaterial();
-            col.material.dynamicFriction = 0.2f;
-            col.material.staticFriction = 0.2f;
-            col.material.bounciness = 0.3f;
+            PhysicMaterial mat = new PhysicMaterial();
+            mat.dynamicFriction = 0f;
+            mat.staticFriction = 0f;
+            mat.bounciness = 0.1f;
+            mat.frictionCombine = PhysicMaterialCombine.Minimum;
+            mat.bounceCombine = PhysicMaterialCombine.Minimum;
+            col.material = mat;
         }
     }
 
@@ -220,7 +223,7 @@ public class CubeController : MonoBehaviour
         ApplySurfaceGravity();
         ApplyFriction();
         ClampSpeed();
-        ClampPositionToBoard();
+        
     }
 
     /// <summary>
@@ -257,10 +260,9 @@ public class CubeController : MonoBehaviour
     /// </summary>
     void ApplyFriction()
     {
-        if (isGrounded && rb.velocity.magnitude > 0.05f)
+        if (isGrounded && rb.velocity.magnitude > 0.01f)
         {
-            float frictionMultiplier = Mathf.Lerp(surfaceFriction * 2f, surfaceFriction, rb.velocity.magnitude / 2f);
-            Vector3 frictionForce = -rb.velocity.normalized * frictionMultiplier * gravityScale * 0.5f;
+            Vector3 frictionForce = -rb.velocity * surfaceFriction;
             rb.AddForce(frictionForce, ForceMode.Acceleration);
         }
     }
@@ -298,9 +300,13 @@ public class CubeController : MonoBehaviour
             transform.rotation, targetRotation, Time.deltaTime * alignmentSpeed);
     }
 
+    // Modifica Shrink() así:
     void Shrink()
     {
-        currentScale -= shrinkRate * Time.deltaTime;
+        if (reachedGoal) return; 
+
+        float speed = rb.velocity.magnitude;
+        currentScale -= shrinkPerSpeed * speed / (3);
 
         if (currentScale <= minScale)
         {
@@ -330,36 +336,64 @@ public class CubeController : MonoBehaviour
         if (transform.parent == null) return;
 
         Vector3 localPos = transform.localPosition;
+        Vector3 localVel = transform.parent.InverseTransformDirection(rb.velocity);
         float halfCube = currentScale * 0.5f;
+        float softZone = 0.3f; // zona de frenado antes del muro
         bool hitWall = false;
 
-        if (localPos.x > boardHalfX - halfCube)
+        // Eje X
+        float limitX = boardHalfX - halfCube;
+        if (localPos.x > limitX)
         {
-            localPos.x = boardHalfX - halfCube;
-            BounceOnAxis(ref localPos, 'x', true);
+            localPos.x = limitX;
+            if (localVel.x > 0) localVel.x = -localVel.x * 0.4f;
             hitWall = true;
         }
-        else if (localPos.x < -(boardHalfX - halfCube))
+        else if (localPos.x < -limitX)
         {
-            localPos.x = -(boardHalfX - halfCube);
-            BounceOnAxis(ref localPos, 'x', false);
+            localPos.x = -limitX;
+            if (localVel.x < 0) localVel.x = -localVel.x * 0.4f;
             hitWall = true;
+        }
+        else if (localPos.x > limitX - softZone && localVel.x > 0)
+        {
+            // Frenar suavemente al acercarse al borde
+            float t = (localPos.x - (limitX - softZone)) / softZone;
+            localVel.x -= localVel.x * t * 0.15f;
+        }
+        else if (localPos.x < -(limitX - softZone) && localVel.x < 0)
+        {
+            float t = (-localPos.x - (limitX - softZone)) / softZone;
+            localVel.x -= localVel.x * t * 0.15f;
         }
 
-        if (localPos.z > boardHalfZ - halfCube)
+        // Eje Z
+        float limitZ = boardHalfZ - halfCube;
+        if (localPos.z > limitZ)
         {
-            localPos.z = boardHalfZ - halfCube;
-            BounceOnAxis(ref localPos, 'z', true);
+            localPos.z = limitZ;
+            if (localVel.z > 0) localVel.z = -localVel.z * 0.4f;
             hitWall = true;
         }
-        else if (localPos.z < -(boardHalfZ - halfCube))
+        else if (localPos.z < -limitZ)
         {
-            localPos.z = -(boardHalfZ - halfCube);
-            BounceOnAxis(ref localPos, 'z', false);
+            localPos.z = -limitZ;
+            if (localVel.z < 0) localVel.z = -localVel.z * 0.4f;
             hitWall = true;
+        }
+        else if (localPos.z > limitZ - softZone && localVel.z > 0)
+        {
+            float t = (localPos.z - (limitZ - softZone)) / softZone;
+            localVel.z -= localVel.z * t * 0.15f;
+        }
+        else if (localPos.z < -(limitZ - softZone) && localVel.z < 0)
+        {
+            float t = (-localPos.z - (limitZ - softZone)) / softZone;
+            localVel.z -= localVel.z * t * 0.15f;
         }
 
         transform.localPosition = localPos;
+        rb.velocity = transform.parent.TransformDirection(localVel);
 
         if (hitWall) FlashTrail();
     }
@@ -370,11 +404,11 @@ public class CubeController : MonoBehaviour
         Vector3 localVel = board.InverseTransformDirection(rb.velocity);
 
         if (axis == 'x')
-            localVel.x = positive ? -Mathf.Abs(localVel.x) * 0.55f
-                                   : Mathf.Abs(localVel.x) * 0.55f;
+            localVel.x = positive ? -Mathf.Abs(localVel.x) * 0.4f
+                                   : Mathf.Abs(localVel.x) * 0.4f;
         else
-            localVel.z = positive ? -Mathf.Abs(localVel.z) * 0.55f
-                                   : Mathf.Abs(localVel.z) * 0.55f;
+            localVel.z = positive ? -Mathf.Abs(localVel.z) * 0.4f
+                                   : Mathf.Abs(localVel.z) * 0.4f;
 
         rb.velocity = board.TransformDirection(localVel);
     }

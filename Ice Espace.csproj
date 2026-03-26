@@ -233,6 +233,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\CubeController.cs" />
+    <Compile Include="Assets\EndGoal.cs" />
     <Compile Include="Assets\GyroscopeSceneController.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
