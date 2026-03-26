@@ -127,15 +127,4 @@ public class GyroscopeSceneController : MonoBehaviour
     {
         return angle > 180f ? angle - 360f : angle;
     }
-
-    void OnGUI()
-    {
-        if (GUI.Button(new Rect(10, 10, 130, 40), "Calibrar Gyro"))
-            Calibrate();
-
-        Vector3 tilt = transform.rotation.eulerAngles;
-        GUI.Label(new Rect(10, 58, 250, 20),
-            string.Format("Inclinación  X:{0:F1}°  Z:{1:F1}°",
-                NormalizeAngle(tilt.x), NormalizeAngle(tilt.z)));
-    }
 }

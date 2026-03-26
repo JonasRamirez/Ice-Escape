@@ -8,6 +8,11 @@ public class EndGoal : MonoBehaviour
     private Text completadoText;
     private bool gameFinished = false;
 
+    // Variables para la transición
+    private float waitTime = 2f; // Tiempo que se muestra "Completado" antes de cambiar de escena
+    private float timer = 0f;
+    private bool levelCompleted = false;
+
     void Start()
     {
         CreateCompletadoUI();
@@ -27,7 +32,7 @@ public class EndGoal : MonoBehaviour
         textGO.transform.SetParent(canvasGO.transform, false);
 
         completadoText = textGO.AddComponent<Text>();
-        completadoText.text = "¡Completado!";
+        completadoText.text = "¡Nivel Completado!";
         completadoText.fontSize = 72;
         completadoText.fontStyle = FontStyle.Bold;
         completadoText.alignment = TextAnchor.MiddleCenter;
@@ -72,15 +77,76 @@ public class EndGoal : MonoBehaviour
     void FinishGame(CubeController cube)
     {
         gameFinished = true;
+        levelCompleted = true;
 
         // Detener encogimiento — activar flag público en CubeController
-        cube.reachedGoal = true;
+        if (cube != null)
+            cube.reachedGoal = true;
 
         // Mostrar texto
         if (completadoText != null)
             completadoText.enabled = true;
 
-        // Pausar juego usando unscaledTime para que el texto siga visible
+        // Pausar el movimiento pero permitir que el timer funcione
         Time.timeScale = 0f;
+
+        // Guardar progreso (desbloquear siguiente nivel)
+        SaveProgress();
+    }
+
+    void SaveProgress()
+    {
+        // Obtener el nivel actual desde el nombre de la escena
+        string sceneName = Application.loadedLevelName;
+        int currentLevel = ExtractLevelNumber(sceneName);
+
+        // Desbloquear el siguiente nivel
+        int nextLevel = currentLevel + 1;
+
+        if (nextLevel <= 5)
+        {
+            // Guardar en PlayerPrefs qué niveles están desbloqueados
+            if (PlayerPrefs.GetInt("Level" + nextLevel + "_Unlocked", 0) == 0)
+            {
+                PlayerPrefs.SetInt("Level" + nextLevel + "_Unlocked", 1);
+                PlayerPrefs.Save();
+                Debug.Log("¡Nivel " + nextLevel + " desbloqueado!");
+            }
+        }
+
+        // Marcar nivel actual como completado
+        PlayerPrefs.SetInt("Level" + currentLevel + "_Completed", 1);
+        PlayerPrefs.Save();
+    }
+
+    int ExtractLevelNumber(string sceneName)
+    {
+        // Extraer el número del nombre de la escena (ej: "level1" -> 1)
+        string numberPart = sceneName.Replace("level", "");
+        int levelNumber;
+        if (int.TryParse(numberPart, out levelNumber))
+        {
+            return levelNumber;
+        }
+        return 1; // Por defecto, nivel 1
+    }
+
+    void Update()
+    {
+        // Si el nivel está completado, manejar el timer
+        if (levelCompleted && Time.timeScale == 0f)
+        {
+            // Time.unscaledDeltaTime funciona incluso con timeScale = 0
+            timer += Time.unscaledDeltaTime;
+
+            if (timer >= waitTime)
+            {
+                // Restaurar timeScale antes de cargar la nueva escena
+                Time.timeScale = 1f;
+
+                // Cargar el selector de niveles
+                Application.LoadLevel("levelselectorscene");
+            }
+        }
     }
 }

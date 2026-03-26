@@ -235,6 +235,8 @@
     <Compile Include="Assets\CubeController.cs" />
     <Compile Include="Assets\EndGoal.cs" />
     <Compile Include="Assets\GyroscopeSceneController.cs" />
+    <Compile Include="Assets\scene\LevelManager.cs" />
+    <Compile Include="Assets\scene\SceneManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

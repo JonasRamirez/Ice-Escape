@@ -459,30 +459,6 @@ public class CubeController : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  DEBUG EN PANTALLA
-    // ─────────────────────────────────────────────────────────────────────
-    void OnGUI()
-    {
-        if (isDead) return;
-        float life = (currentScale - minScale) / totalShrinkRange * 100f;
-
-        GUI.Box(new Rect(10, 80, 260, 120), "Información del Cubo");
-        GUI.Label(new Rect(20, 100, 240, 20), string.Format("Tamaño : {0:F2}", currentScale));
-        GUI.Label(new Rect(20, 120, 240, 20), string.Format("Masa   : {0:F2} kg", rb.mass));
-        GUI.Label(new Rect(20, 140, 240, 20), string.Format("Vel    : {0:F2} m/s", rb.velocity.magnitude));
-        GUI.Label(new Rect(20, 160, 240, 20), string.Format("Vida   : {0:F0}%", life));
-        GUI.Label(new Rect(20, 180, 240, 20), string.Format("Contacto: {0}", isGrounded ? "Sí" : "No"));
-
-        if (sceneController != null)
-        {
-            Vector3 tilt = sceneController.transform.rotation.eulerAngles;
-            GUI.Label(new Rect(10, 210, 260, 20),
-                string.Format("Inclinación X:{0:F1}° Z:{1:F1}°",
-                    NormalizeAngle(tilt.x), NormalizeAngle(tilt.z)));
-        }
-    }
-
     float NormalizeAngle(float angle)
     {
         return angle > 180f ? angle - 360f : angle;
