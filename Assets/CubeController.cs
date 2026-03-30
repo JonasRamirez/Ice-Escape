@@ -2,32 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Controla el cubo que:
-///   - Se orienta automáticamente al ángulo del tablero (se adapta a la inclinación).
-///   - Recibe una gravedad simulada proyectada sobre la superficie del tablero,
-///     por lo que rueda en la dirección de la inclinación.
-///   - Se encoge progresivamente — cuanto más pequeño, menos masa, más velocidad.
-///   - Deja un rastro (TrailRenderer) que se ajusta a su tamaño.
-///
-/// Compatible con Unity 2017.4.40f1 LTS
-///
-/// SETUP REQUERIDO:
-///   1. El cubo debe ser hijo del GameObject del tablero.
-///   2. El cubo necesita: Rigidbody + BoxCollider + TrailRenderer.
-///   3. Rigidbody → Use Gravity: FALSE  (la gravedad la calculamos nosotros).
-///   4. Rigidbody → Freeze Rotation: X Y Z  (el cubo se orienta con transform, no con física).
-///   5. Rigidbody → Freeze Position: Y  NO activar (necesitamos el eje Y libre para el contacto).
-///
-/// CÓMO FUNCIONA LA FÍSICA:
-///   La gravedad real de Unity siempre apunta hacia abajo en mundo.
-///   Cuando el tablero se inclina, queremos que el cubo se deslice "cuesta abajo".
-///   Para eso, tomamos la normal del tablero (BoardUp) y proyectamos la gravedad
-///   sobre el plano del tablero: esa componente tangencial es la fuerza que empuja al cubo.
-///   La componente normal la cancelamos, dejando solo la deslizante.
-/// </summary>
+
 [RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(TrailRenderer))]
 public class CubeController : MonoBehaviour
 {
     // ─────────────────────────────────────────
@@ -76,15 +52,7 @@ public class CubeController : MonoBehaviour
     [Header("Alineación al tablero")]
     [Tooltip("Qué tan rápido el cubo se alinea visualmente con la inclinación del tablero")]
     public float alignmentSpeed = 8f;
-
-    // ─────────────────────────────────────────
-    //  RASTRO
-    // ─────────────────────────────────────────
-    [Header("Rastro")]
-    public float trailTime = 1.2f;
-    public float trailStartWidth = 0.3f;
-    public Color trailStartColor = new Color(0.2f, 0.8f, 1f, 0.9f);
-    public Color trailEndColor = new Color(0.2f, 0.8f, 1f, 0f);
+  
 
     // ─────────────────────────────────────────
     //  LÍMITES DEL TABLERO
@@ -97,7 +65,6 @@ public class CubeController : MonoBehaviour
     //  PRIVADOS
     // ─────────────────────────────────────────
     private Rigidbody rb;
-    private TrailRenderer trail;
     private float currentScale;
     private float totalShrinkRange;
     private bool isDead = false;
@@ -109,7 +76,6 @@ public class CubeController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        trail = GetComponent<TrailRenderer>();
 
         currentScale = initialScale;
         totalShrinkRange = 20+ initialScale - minScale;
@@ -117,7 +83,6 @@ public class CubeController : MonoBehaviour
         transform.localScale = Vector3.one * currentScale;
 
         SetupRigidbody();
-        SetupTrail();
 
         // Buscar el controlador automáticamente
         if (boardController == null && transform.parent != null)
@@ -183,15 +148,7 @@ public class CubeController : MonoBehaviour
             col.material = mat;
         }
     }
-
-    void SetupTrail()
-    {
-        trail.time = trailTime;
-        trail.startWidth = trailStartWidth;
-        trail.endWidth = 0f;
-        trail.material = new Material(Shader.Find("Sprites/Default"));
-        ApplyTrailGradient(trailStartColor, trailEndColor);
-    }
+    
 
     // ─────────────────────────────────────────────────────────────────────
     //  DETECCIÓN DE COLISIONES
@@ -325,7 +282,6 @@ public class CubeController : MonoBehaviour
 
         rb.mass = Mathf.Lerp(minMass, initialMass, lifePercent);
         maxSpeed = Mathf.Lerp(18f, 6f, lifePercent);
-        trail.startWidth = trailStartWidth * (currentScale / initialScale);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -394,8 +350,7 @@ public class CubeController : MonoBehaviour
 
         transform.localPosition = localPos;
         rb.velocity = transform.parent.TransformDirection(localVel);
-
-        if (hitWall) FlashTrail();
+        
     }
 
     void BounceOnAxis(ref Vector3 localPos, char axis, bool positive)
@@ -412,37 +367,6 @@ public class CubeController : MonoBehaviour
 
         rb.velocity = board.TransformDirection(localVel);
     }
-
-    // ─────────────────────────────────────────────────────────────────────
-    //  RASTRO — efectos de color
-    // ─────────────────────────────────────────────────────────────────────
-    void FlashTrail()
-    {
-        ApplyTrailGradient(Color.yellow, new Color(1f, 0.5f, 0f, 0f));
-        Invoke("RestoreTrailColor", 0.15f);
-    }
-
-    void RestoreTrailColor()
-    {
-        ApplyTrailGradient(trailStartColor, trailEndColor);
-    }
-
-    void ApplyTrailGradient(Color start, Color end)
-    {
-        Gradient g = new Gradient();
-        g.SetKeys(
-            new GradientColorKey[] {
-                new GradientColorKey(start, 0f),
-                new GradientColorKey(end,   1f)
-            },
-            new GradientAlphaKey[] {
-                new GradientAlphaKey(start.a, 0f),
-                new GradientAlphaKey(0f,      1f)
-            }
-        );
-        trail.colorGradient = g;
-    }
-
     // ─────────────────────────────────────────────────────────────────────
     //  MUERTE
     // ─────────────────────────────────────────────────────────────────────
@@ -450,7 +374,6 @@ public class CubeController : MonoBehaviour
     {
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
-        Invoke("DeactivateCube", trailTime + 0.5f);
         Debug.Log("[CubeController] Cubo llegó a tamaño mínimo.");
     }
 

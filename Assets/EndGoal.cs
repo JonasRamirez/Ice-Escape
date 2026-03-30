@@ -18,35 +18,103 @@ public class EndGoal : MonoBehaviour
         CreateCompletadoUI();
     }
 
+    GameObject completadoCanvas;
+
+    void CreateButton(Transform parent, string text, Vector2 position, UnityEngine.Events.UnityAction action)
+    {
+        GameObject buttonGO = new GameObject(text);
+        buttonGO.transform.SetParent(parent, false);
+
+        Image img = buttonGO.AddComponent<Image>();
+        img.color = Color.white;
+
+        Button btn = buttonGO.AddComponent<Button>();
+        btn.onClick.AddListener(action);
+
+        RectTransform rect = buttonGO.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(200, 60);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+
+        // Texto del botón
+        GameObject txtGO = new GameObject("Text");
+        txtGO.transform.SetParent(buttonGO.transform, false);
+
+        Text txt = txtGO.AddComponent<Text>();
+        txt.text = text;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.color = Color.black;
+        txt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+        RectTransform txtRect = txtGO.GetComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero;
+        txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = Vector2.zero;
+        txtRect.offsetMax = Vector2.zero;
+    }
+
     void CreateCompletadoUI()
     {
-        // Crear Canvas
+        // Canvas
         GameObject canvasGO = new GameObject("Canvas_Completado");
         Canvas canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvasGO.AddComponent<CanvasScaler>();
+
+        CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        // Crear Text
+        // =========================
+        // 🔳 FONDO OSCURO
+        // =========================
+        GameObject bgGO = new GameObject("Background");
+        bgGO.transform.SetParent(canvasGO.transform, false);
+
+        Image bgImage = bgGO.AddComponent<Image>();
+        bgImage.color = new Color(0f, 0f, 0f, 0.6f); // Negro transparente
+
+        RectTransform bgRect = bgGO.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+
+        // =========================
+        // 📝 TEXTO
+        // =========================
         GameObject textGO = new GameObject("Texto_Completado");
         textGO.transform.SetParent(canvasGO.transform, false);
 
         completadoText = textGO.AddComponent<Text>();
-        completadoText.text = "¡Nivel Completado!";
-        completadoText.fontSize = 72;
-        completadoText.fontStyle = FontStyle.Bold;
+        completadoText.text = "Nivel " + LevelManager.currentLevel + " Completado";
+        completadoText.fontSize = 60;
         completadoText.alignment = TextAnchor.MiddleCenter;
-        completadoText.color = new Color(0.2f, 1f, 0.3f, 1f); // Verde
+        completadoText.color = Color.white;
+        completadoText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 
-        // Posición centrada en pantalla
-        RectTransform rect = textGO.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 0f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        RectTransform textRect = textGO.GetComponent<RectTransform>();
+        textRect.anchorMin = new Vector2(0.5f, 0.7f);
+        textRect.anchorMax = new Vector2(0.5f, 0.7f);
+        textRect.sizeDelta = new Vector2(600, 100);
+        textRect.anchoredPosition = Vector2.zero;
+
+        // =========================
+        // 🔁 BOTÓN REINTENTAR
+        // =========================
+        CreateButton(canvasGO.transform, "Reintentar", new Vector2(0, -50), RestartLevel);
+
+        // =========================
+        // ▶ BOTÓN CONTINUAR
+        // =========================
+        CreateButton(canvasGO.transform, "Continuar", new Vector2(0, -130), NextLevel);
 
         // Oculto al inicio
-        completadoText.enabled = false;
+        canvasGO.SetActive(false);
+
+        // Guardamos referencia
+        completadoCanvas = canvasGO;
     }
 
     void OnTriggerEnter(Collider other)
@@ -77,20 +145,16 @@ public class EndGoal : MonoBehaviour
     void FinishGame(CubeController cube)
     {
         gameFinished = true;
-        levelCompleted = true;
 
-        // Detener encogimiento — activar flag público en CubeController
         if (cube != null)
             cube.reachedGoal = true;
 
-        // Mostrar texto
-        if (completadoText != null)
-            completadoText.enabled = true;
+        // Mostrar UI
+        completadoCanvas.SetActive(true);
 
-        // Pausar el movimiento pero permitir que el timer funcione
+        // Pausar juego
         Time.timeScale = 0f;
 
-        // Guardar progreso (desbloquear siguiente nivel)
         SaveProgress();
     }
 
@@ -147,6 +211,28 @@ public class EndGoal : MonoBehaviour
                 // Cargar el selector de niveles
                 Application.LoadLevel("levelselectorscene");
             }
+        }
+    }
+
+    void RestartLevel()
+    {
+        Time.timeScale = 1f;
+        Application.LoadLevel(Application.loadedLevelName);
+    }
+
+    void NextLevel()
+    {
+        Time.timeScale = 1f;
+
+        int nextLevel = LevelManager.currentLevel + 1;
+
+        if (nextLevel <= 5)
+        {
+            Application.LoadLevel("level" + nextLevel);
+        }
+        else
+        {
+            Application.LoadLevel("levelselectorscene");
         }
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // Importante para acceder a los componentes de UI
+using UnityEngine.UI; 
 using System.Collections;
 
 public class LevelManager : MonoBehaviour
 {
-    public int currentLevel = 1;
+    public static int currentLevel = 1;
 
     void Start()
     {
@@ -25,6 +25,7 @@ public class LevelManager : MonoBehaviour
         if (int.TryParse(buttonText, out levelNumber))
         {
             // Si el texto es un número, cargar ese nivel
+            currentLevel = levelNumber;
             Application.LoadLevel("level" + levelNumber);
             Debug.Log("Cargando nivel " + levelNumber + " desde botón con texto: " + buttonText);
         }
@@ -57,6 +58,8 @@ public class LevelManager : MonoBehaviour
     // Versión aún más simple: usar string directamente
     public void SendLevelFromString(string levelName)
     {
+        int levelNumber = int.Parse(levelName);
+        currentLevel = levelNumber;
         Application.LoadLevel("level" + levelName);
         Debug.Log("Cargando nivel: level" + levelName);
     }
