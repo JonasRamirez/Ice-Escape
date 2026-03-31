@@ -12,19 +12,13 @@ public class tutorialImages : MonoBehaviour {
     changeImage(true);
 }
 
-public void start()
+public void Start()
 	{
 		for (int i = 0; i < images.Length; i++)
 		{
-			if (i == imageNum)
-			{
-				images[i].SetActive(true);
-			}
-			else
-			{
-				images[i].SetActive(false);
-			}
+			images[i].SetActive(false);
 		}
+		images[0].SetActive(true);
 	}
 
 public void previousImage()
@@ -34,17 +28,18 @@ public void previousImage()
 
 public void changeImage(bool next)
 	{
+
+		if (next)
+		{
+			imageNum++;
+		}
+		else
+		{
+			imageNum--;
+		}
+
 		if (imageNum < images.Length && imageNum >= 0)
 		{
-			if (next)
-			{
-				imageNum++;
-			}
-			else
-			{
-				imageNum--;
-			}
-
 			for (int i = 0; i < images.Length; i++)
 			{
 				if (i == imageNum)
