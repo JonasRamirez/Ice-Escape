@@ -1,97 +1,152 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine;
 
+/// <summary>
+/// Pinta un rastro de agua continuo sobre el tablero.
+/// Usa un quad hijo del tablero con Sprites/Default — sin shader custom.
+/// El quad hereda la rotación del tablero automáticamente.
+/// </summary>
 public class IceTrailPainter : MonoBehaviour
 {
     [Header("Referencias")]
-    public MeshRenderer boardRenderer;
     public GyroscopeSceneController boardController;
 
+    [Header("Dimensiones del tablero")]
+    public float boardHalfX = 4.5f;
+    public float boardHalfZ = 4.5f;
+
     [Header("Textura")]
-    [Tooltip("Resolución de la textura de rastro (256/512/1024)")]
+    [Tooltip("512 es suficiente para buen rendimiento")]
     public int trailResolution = 512;
 
-    [Header("Pintura")]
-    [Tooltip("Radio del círculo pintado cada frame (en texels)")]
-    public int brushRadius = 6;
+    [Header("Pincel")]
+    public int brushRadius = 7;
 
-    [Tooltip("Intensidad del trazo (0-1). Más alto = más opaco")]
     [Range(0f, 1f)]
-    public float brushOpacity = 0.85f;
+    public float brushOpacity = 0.9f;
 
-    [Tooltip("Qué tan rápido se desvanece el rastro (0 = nunca, 1 = muy rápido)")]
-    [Range(0f, 0.005f)]
-    public float fadeSpeed = 0.0008f;
+    [Tooltip("0 = permanente, valores pequeños = se desvanece lento")]
+    [Range(0f, 0.003f)]
+    public float fadeSpeed = 0.001f;
 
-    [Tooltip("Color del agua/hielo derretido")]
-    public Color trailColor = new Color(0.6f, 0.88f, 1f, 1f);
+    public Color trailColor = new Color(0.55f, 0.85f, 1f, 1f);
 
-    // ── Privados ────────────────────────────────────────────────────
-    private Texture2D trailTexture;
+    // ── Privados ─────────────────────────────────────────────────────
+    private Texture2D trailTex;
     private Color[] pixels;
-    private Color[] fadeBuffer;
-    private int texSize;
     private bool isDirty = false;
-
-    // Para el fade acumulado
     private float fadeAccum = 0f;
-    private const float FADE_INTERVAL = 0.05f; // fade cada 50ms, no cada frame
+    private const float FADE_INTERVAL = 0.06f;
+    private int texSize;
 
     void Start()
     {
-        texSize = trailResolution;
-        trailTexture = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false);
-        trailTexture.wrapMode = TextureWrapMode.Clamp;
-        trailTexture.filterMode = FilterMode.Bilinear;
+        if (boardController == null)
+            boardController = FindObjectOfType<GyroscopeSceneController>();
 
-        // Inicializar transparente
+        texSize = trailResolution;
+
+        // Crear textura
+        trailTex = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false);
+        trailTex.wrapMode = TextureWrapMode.Clamp;
+        trailTex.filterMode = FilterMode.Bilinear;
+
         pixels = new Color[texSize * texSize];
         for (int i = 0; i < pixels.Length; i++)
             pixels[i] = new Color(trailColor.r, trailColor.g, trailColor.b, 0f);
 
-        trailTexture.SetPixels(pixels);
-        trailTexture.Apply();
+        trailTex.SetPixels(pixels);
+        trailTex.Apply();
 
-        // Asignar al material del tablero como textura de rastro
-        if (boardRenderer != null)
-            boardRenderer.material.SetTexture("_TrailTex", trailTexture);
+        CreateTrailQuad();
+    }
 
-        // Buscar referencias si no están asignadas
-        if (boardController == null)
-            boardController = FindObjectOfType<GyroscopeSceneController>();
+    void CreateTrailQuad()
+    {
+        // Crear un quad hijo del tablero — hereda su rotación y posición
+        GameObject quad = new GameObject("IceTrailQuad");
+        quad.transform.SetParent(boardController.transform);
 
-        if (boardRenderer == null && boardController != null)
-            boardRenderer = boardController.GetComponent<MeshRenderer>();
+        // Posicionarlo justo sobre la superficie del tablero
+        // Y local ligeramente positivo para no hacer z-fighting
+        quad.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+        quad.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+        quad.transform.localScale = new Vector3(boardHalfX * 2f, boardHalfZ * 2f, 1f);
+
+        // El quad por defecto de Unity está en el plano XY,
+        // necesitamos rotarlo para que quede en XZ (plano horizontal del tablero)
+        quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+        MeshFilter mf = quad.AddComponent<MeshFilter>();
+        MeshRenderer mr = quad.AddComponent<MeshRenderer>();
+
+        mf.mesh = CreateQuadMesh();
+
+        // Material transparente simple — sin shader custom
+        Material mat = new Material(Shader.Find("Sprites/Default"));
+        mat.mainTexture = trailTex;
+        mat.color = Color.white;
+
+        mr.material = mat;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+
+        // Asegurarse que se renderiza encima del tablero
+        mr.sortingOrder = 1;
+    }
+
+    Mesh CreateQuadMesh()
+    {
+        Mesh mesh = new Mesh();
+        mesh.vertices = new Vector3[]
+        {
+            new Vector3(-0.5f, -0.5f, 0f),
+            new Vector3( 0.5f, -0.5f, 0f),
+            new Vector3( 0.5f,  0.5f, 0f),
+            new Vector3(-0.5f,  0.5f, 0f)
+        };
+        mesh.uv = new Vector2[]
+        {
+            new Vector2(0, 0),
+            new Vector2(1, 0),
+            new Vector2(1, 1),
+            new Vector2(0, 1)
+        };
+        mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
+        mesh.RecalculateNormals();
+        return mesh;
     }
 
     void Update()
     {
-        if (boardController == null || boardRenderer == null) return;
+        if (boardController == null) return;
 
         PaintAtCurrentPosition();
         AccumulateFade();
 
         if (isDirty)
         {
-            trailTexture.SetPixels(pixels);
-            trailTexture.Apply(false); // false = no mipmaps, más rápido
+            trailTex.SetPixels(pixels);
+            trailTex.Apply(false);
             isDirty = false;
         }
     }
 
     void PaintAtCurrentPosition()
     {
-        // Convertir posición mundo → UV del tablero
-        Vector2 uv = WorldToTrailUV(transform.position);
+        Vector2 uv = WorldToUV(transform.position);
+
+        // Si el cubo está fuera del tablero, no pintar
         if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f) return;
 
         int cx = Mathf.RoundToInt(uv.x * (texSize - 1));
         int cy = Mathf.RoundToInt(uv.y * (texSize - 1));
 
-        // Radio dinámico según tamaño del cubo
-        float scale = transform.localScale.x;
-        int radius = Mathf.Max(2, Mathf.RoundToInt(brushRadius * scale));
+        // Radio proporcional al tamaño actual del cubo
+        float cubeScale = transform.localScale.x;
+        int radius = Mathf.Max(2, Mathf.RoundToInt(brushRadius * cubeScale));
 
         PaintCircle(cx, cy, radius);
         isDirty = true;
@@ -100,6 +155,7 @@ public class IceTrailPainter : MonoBehaviour
     void PaintCircle(int cx, int cy, int radius)
     {
         int r2 = radius * radius;
+        float opacity = brushOpacity * Time.deltaTime * 60f;
 
         for (int dy = -radius; dy <= radius; dy++)
         {
@@ -109,26 +165,19 @@ public class IceTrailPainter : MonoBehaviour
 
                 int px = cx + dx;
                 int py = cy + dy;
-
                 if (px < 0 || px >= texSize || py < 0 || py >= texSize) continue;
 
                 int idx = py * texSize + px;
 
-                // Pincel con falloff suave desde el centro
                 float dist = Mathf.Sqrt(dx * dx + dy * dy);
                 float falloff = 1f - (dist / radius);
-                falloff = falloff * falloff; // cuadrático = borde más suave
+                falloff *= falloff; // borde suave
 
-                float newAlpha = Mathf.Min(1f, pixels[idx].a + falloff * brushOpacity * Time.deltaTime * 60f);
-                pixels[idx].a = newAlpha;
+                pixels[idx].a = Mathf.Min(1f, pixels[idx].a + falloff * opacity);
             }
         }
     }
 
-    /// <summary>
-    /// El fade se aplica a intervalos fijos para no hacerlo cada frame
-    /// (ahorra mucho CPU en texturas grandes).
-    /// </summary>
     void AccumulateFade()
     {
         if (fadeSpeed <= 0f) return;
@@ -137,46 +186,31 @@ public class IceTrailPainter : MonoBehaviour
         if (fadeAccum < FADE_INTERVAL) return;
         fadeAccum = 0f;
 
-        float fadeDelta = fadeSpeed * FADE_INTERVAL * 200f;
-
+        float delta = fadeSpeed * FADE_INTERVAL * 200f;
         for (int i = 0; i < pixels.Length; i++)
         {
             if (pixels[i].a > 0f)
             {
-                pixels[i].a = Mathf.Max(0f, pixels[i].a - fadeDelta);
+                pixels[i].a = Mathf.Max(0f, pixels[i].a - delta);
                 isDirty = true;
             }
         }
     }
 
     /// <summary>
-    /// Convierte posición en mundo a coordenadas UV del tablero (0-1).
-    /// Funciona con cualquier inclinación porque trabaja en espacio local del tablero.
+    /// Convierte posición mundo → UV (0-1) relativa al tablero.
+    /// Trabaja en espacio local del tablero, así funciona con cualquier inclinación.
     /// </summary>
-    Vector2 WorldToTrailUV(Vector3 worldPos)
+    Vector2 WorldToUV(Vector3 worldPos)
     {
-        Transform board = boardController.transform;
-
-        // Posición relativa al tablero en espacio local
-        Vector3 localPos = board.InverseTransformPoint(worldPos);
-
-        // Asumir que el tablero va de -boardHalf a +boardHalf en X y Z
-        // Tomar los valores del CubeController si están disponibles
-        float halfX = 4.5f;
-        float halfZ = 4.5f;
-
-        CubeController cc = GetComponent<CubeController>();
-        if (cc != null) { halfX = cc.boardHalfX; halfZ = cc.boardHalfZ; }
-
-        float u = (localPos.x + halfX) / (halfX * 2f);
-        float v = (localPos.z + halfZ) / (halfZ * 2f);
-
+        Vector3 local = boardController.transform.InverseTransformPoint(worldPos);
+        float u = (local.x + boardHalfX) / (boardHalfX * 2f);
+        float v = (local.z + boardHalfZ) / (boardHalfZ * 2f);
         return new Vector2(u, v);
     }
 
     void OnDestroy()
     {
-        if (trailTexture != null)
-            Destroy(trailTexture);
+        if (trailTex != null) Destroy(trailTex);
     }
 }
