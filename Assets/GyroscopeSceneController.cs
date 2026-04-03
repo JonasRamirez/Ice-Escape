@@ -255,7 +255,7 @@ public class GyroscopeSceneController : MonoBehaviour
         if (!Input.GetMouseButton(0)) return;
 
         float mx = Input.GetAxis("Mouse X") * sensitivitySide * 3f;
-        float my = Input.GetAxis("Mouse Y") * sensitivityForward * 3f;
+        float my = -Input.GetAxis("Mouse Y") * sensitivityForward * 3f;
 
         Vector3 cur = targetRotation.eulerAngles;
         float newX = Mathf.Clamp(NormalizeAngle(cur.x) - my, -maxTiltAngle, maxTiltAngle);
