@@ -70,6 +70,7 @@ public class CubeController : MonoBehaviour
     private float totalShrinkRange;
     private bool isDead = false;
     private bool isGrounded = false;
+    public bool IsGrounded { get { return isGrounded; } }
     private Vector3 lastDebugForce = Vector3.zero;
     private GyroscopeSceneController sceneController; // Variable local para el controlador
 
