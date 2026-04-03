@@ -235,6 +235,7 @@
     <Compile Include="Assets\CubeController.cs" />
     <Compile Include="Assets\EndGoal.cs" />
     <Compile Include="Assets\GyroscopeSceneController.cs" />
+    <Compile Include="Assets\scene\GyroDebugDisplay.cs" />
     <Compile Include="Assets\scene\LevelManager.cs" />
     <Compile Include="Assets\scene\SceneManager.cs" />
     <Compile Include="Assets\scene\tutorialImages.cs" />

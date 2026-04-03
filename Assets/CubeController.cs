@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 
 
@@ -162,12 +163,42 @@ public class CubeController : MonoBehaviour
         }
     }
 
+    void OnCollisionEnter(Collision collision)
+    {
+        if (isDead) return;
+        
+        if (collision.gameObject.CompareTag("deadzone"))
+        {
+            TriggerFail();
+        }
+    }
+
     void OnCollisionExit(Collision collision)
     {
         if (sceneController != null && collision.gameObject == sceneController.gameObject)
         {
             isGrounded = false;
         }
+    }
+
+    void TriggerFail()
+    {
+        isDead = true;
+
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+
+        Debug.Log("[CubeController] Player murió por colisión.");
+
+
+        // Reiniciar nivel después de un pequeño delay (opcional)
+        RestartLevel();
+    }
+
+    void RestartLevel()
+    {
+        Time.timeScale = 1f;
+        Application.LoadLevel(Application.loadedLevelName);
     }
 
     // ─────────────────────────────────────────────────────────────────────
