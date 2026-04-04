@@ -140,11 +140,13 @@ public class WaterTrailPainter : MonoBehaviour
         // (eliminamos la componente normal para pegarlo a la superficie)
         Vector3 toBoard = boardTransform.position - cubePos;
         float distToPlane = Vector3.Dot(toBoard, boardNormal);
-        Vector3 onSurface = cubePos + boardNormal * (distToPlane + 0.2f);
+        Vector3 onSurface = cubePos + boardNormal * (distToPlane + 0.18f);
 
         // ── Crear el quad ────────────────────────────────────────────────
         GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
         quad.name = "WaterDecal";
+
+
 
         // Padre = tablero → rota con él
         quad.transform.SetParent(boardTransform, worldPositionStays: true);
@@ -167,6 +169,7 @@ public class WaterTrailPainter : MonoBehaviour
         // ── Material instanciado ─────────────────────────────────────────
         MeshRenderer rend = quad.GetComponent<MeshRenderer>();
         Material instanceMat = new Material(waterMaterial);
+        rend.sortingOrder = -1;
         Color col = instanceMat.color;
         col.a = maxAlpha;
         instanceMat.color = col;

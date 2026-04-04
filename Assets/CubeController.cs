@@ -399,6 +399,36 @@ public class CubeController : MonoBehaviour
 
         rb.velocity = board.TransformDirection(localVel);
     }
+
+    /// <summary>
+    /// Reduce drásticamente el tamaño del cubo por contacto con una pared de fuego.
+    /// Se quita una fracción de la escala ACTUAL (no de la escala inicial),
+    /// así cada golpe duele más a medida que el cubo ya está pequeño.
+    /// </summary>
+    public void ApplyFireDamage(float fraction)
+    {
+        if (isDead || reachedGoal) return;
+
+        // Quitamos la fracción de la escala ACTUAL
+        float scaleToRemove = currentScale * fraction;
+        currentScale -= scaleToRemove;
+
+        // Si cae por debajo del mínimo, el cubo muere normalmente
+        if (currentScale <= minScale)
+        {
+            currentScale = minScale;
+            isDead = true;
+            OnCubeDied();
+            return;
+        }
+
+        // Aplicar el cambio visual inmediatamente
+        transform.localScale = Vector3.one * currentScale;
+
+        // Actualizar física con el nuevo tamaño
+        UpdatePhysicsBasedOnSize();
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     //  MUERTE
     // ─────────────────────────────────────────────────────────────────────
@@ -406,7 +436,6 @@ public class CubeController : MonoBehaviour
     {
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
-        Debug.Log("[CubeController] Cubo llegó a tamaño mínimo.");
     }
 
     void DeactivateCube()
