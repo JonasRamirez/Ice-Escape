@@ -62,6 +62,18 @@ public class CubeController : MonoBehaviour
     public float boardHalfX = 4.5f;
     public float boardHalfZ = 4.5f;
 
+    [Header("Feedback de impacto")]
+    [Tooltip("AudioSource con el sonido de choque")]
+    public AudioSource impactSound;
+
+    [Tooltip("Duración de la vibración en milisegundos")]
+    public long vibrationDuration = 30;
+
+    [Header("Impacto por velocidad")]
+    [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
+    public float impactBreakThreshold = 6f;
+
+
     // ─────────────────────────────────────────
     //  PRIVADOS
     // ─────────────────────────────────────────
@@ -167,10 +179,15 @@ public class CubeController : MonoBehaviour
     void OnCollisionEnter(Collision collision)
     {
         if (isDead) return;
-        
+
         if (collision.gameObject.CompareTag("deadzone"))
         {
             TriggerFail();
+        }
+
+        if (collision.relativeVelocity.magnitude >= impactBreakThreshold)
+        {
+            TriggerImpactFeedback();
         }
     }
 
@@ -195,6 +212,26 @@ public class CubeController : MonoBehaviour
         // Reiniciar nivel después de un pequeño delay (opcional)
         RestartLevel();
     }
+
+
+    void TriggerImpactFeedback()
+    {
+        if (impactSound != null)
+        {
+            StartCoroutine(PlaySoundThenFail());
+            #if UNITY_ANDROID
+                Handheld.Vibrate();
+            #endif
+        }
+    }
+
+    IEnumerator PlaySoundThenFail()
+    {
+        impactSound.PlayOneShot(impactSound.clip);
+        yield return new WaitForSeconds(impactSound.clip.length);
+    }
+
+
 
     void RestartLevel()
     {
