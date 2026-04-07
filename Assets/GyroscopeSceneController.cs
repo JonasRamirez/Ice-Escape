@@ -120,7 +120,7 @@ public class GyroscopeSceneController : MonoBehaviour
         {
             gyro = Input.gyro;
             gyro.enabled = true;
-            gyro.updateInterval = 0.0083f; // solicitar ~120 Hz al hardware
+            gyro.updateInterval = 0.005f;
             gyroAvailable = true;
             fusedAttitude = GyroToUnity(gyro.attitude);
 
@@ -136,7 +136,7 @@ public class GyroscopeSceneController : MonoBehaviour
 
     // ────────────────────────────────────────────────────────────────────────
     /// <summary>Llamar desde un botón UI para recalibrar en runtime.</summary>
-    public void Calibrate() { StartCoroutine(CalibrateRoutine(true)); }
+    public void Calibrate() { StartCoroutine(CalibrateRoutine(false)); }
 
     IEnumerator CalibrateRoutine(bool skipDelay)
     {
@@ -172,77 +172,60 @@ public class GyroscopeSceneController : MonoBehaviour
     }
 
     void UpdateWithGyroscope()
+{
+    if (!calibrated) return;
+    
+    // SIN filtro complementario (como lo tienes ahora)
+    Quaternion calibratedAttitude = calibrationOffset * GyroToUnity(gyro.attitude);
+    
+    Vector3 worldUpInSensor = Quaternion.Inverse(calibratedAttitude) * Vector3.up;
+    
+    // ====== EJE Y (funciona perfecto) ======
+    float rawForward = 0f;
+    if (!landscapeRight)
+        rawForward = -worldUpInSensor.z;  // Este funciona
+    else
+        rawForward = worldUpInSensor.z;
+    
+    // ====== EJE X (el que no funciona) ======
+    float rawSide = 0f;
+    if (!landscapeRight)
+        rawSide = -worldUpInSensor.x;     // Este NO funciona
+    else
+        rawSide = worldUpInSensor.x;
+    
+    // APLICAR EXACTAMENTE EL MISMO TRATAMIENTO
+    rawForward *= sensitivityForward;
+    rawSide *= sensitivitySide;
+    
+    // Deadzone en grados (como lo tenías originalmente)
+    // NOTA: No uses deadzone lineal, usa la misma que funciona para Y
+    float tiltForward = rawForward;  // Temporal, solo para debug
+    float tiltSide = rawSide;
+    
+    // Convertir a grados con Asin (igual que hacías antes)
+    tiltForward = Mathf.Asin(Mathf.Clamp(rawForward, -0.99f, 0.99f)) * Mathf.Rad2Deg;
+    tiltSide = Mathf.Asin(Mathf.Clamp(rawSide, -0.99f, 0.99f)) * Mathf.Rad2Deg;
+    
+    // Deadzone en grados (tu deadZone original)
+    tiltForward = ApplyDeadZone(tiltForward, deadZone);
+    tiltSide = ApplyDeadZone(tiltSide, deadZone);
+    
+    // Clamp
+    tiltForward = Mathf.Clamp(tiltForward, -maxTiltAngle, maxTiltAngle);
+    tiltSide = Mathf.Clamp(tiltSide, -maxTiltAngle, maxTiltAngle);
+    
+    // Debug para comparar
+    if (Mathf.Abs(tiltSide) > 0.1f || Mathf.Abs(tiltForward) > 0.1f)
     {
-        if (!calibrated) return;
-
-        // ── PASO 1: Actitud calibrada ────────────────────────────────────────
-        Quaternion calibratedAttitude = calibrationOffset * GyroToUnity(gyro.attitude);
-
-        // ── PASO 2: Filtro complementario sobre quaternions ──────────────────
-        // Fusionamos la actitud del gyro (alta frecuencia, precisa pero deriva)
-        // con la referencia del acelerómetro (baja frecuencia, no deriva).
-        // Se opera sobre quaternions crudos, ANTES de extraer ángulos.
-        Vector3 rawAccel = Input.acceleration;
-        float accelMag = rawAccel.magnitude;
-        bool accelOk = accelMag > 0.8f && accelMag < 1.2f;
-
-        if (accelOk)
-        {
-            smoothAccel = Vector3.Lerp(rawAccel.normalized, smoothAccel, accelSmoothing);
-
-            // Quaternion de referencia basado solo en la dirección de la gravedad
-            Quaternion accelRef = Quaternion.FromToRotation(Vector3.back, smoothAccel);
-
-            // El gyro domina; el accel corrige la deriva muy lentamente
-            calibratedAttitude = Quaternion.Slerp(calibratedAttitude, accelRef, driftCorrection);
-        }
-
-        fusedAttitude = calibratedAttitude;
-
-        // ── PASO 3: Extracción de tilt por proyección de vectores ────────────
-        //
-        // Expresamos el vector "arriba del mundo" en el espacio local del sensor.
-        // Sus componentes X y Z dan el tilt sin Euler, sin gimbal lock, sin saltos.
-        //
-        //   worldUpInSensor.x > 0  → dispositivo inclinado hacia la derecha
-        //   worldUpInSensor.z > 0  → dispositivo inclinado hacia atrás
-        //
-        Vector3 worldUpInSensor = Quaternion.Inverse(fusedAttitude) * Vector3.up;
-
-        // En landscape el dispositivo está girado ~90° en Z respecto a portrait,
-        // por lo que los ejes físicos del tablero están permutados en el sensor.
-        float tiltForward;
-        float tiltSide;
-
-        if (!landscapeRight)
-        {
-            // Landscape Left (home button a la derecha):
-            tiltForward = -worldUpInSensor.z * sensitivityForward;
-            tiltSide = -worldUpInSensor.x * sensitivitySide;
-        }
-        else
-        {
-            // Landscape Right (home button a la izquierda):
-            tiltForward = worldUpInSensor.z * sensitivityForward;
-            tiltSide = worldUpInSensor.x * sensitivitySide;
-        }
-
-        // Convertir de componente de seno a grados reales con asin
-        tiltForward = Mathf.Asin(Mathf.Clamp(tiltForward, -1f, 1f)) * Mathf.Rad2Deg;
-        tiltSide = Mathf.Asin(Mathf.Clamp(tiltSide, -1f, 1f)) * Mathf.Rad2Deg;
-
-        // ── PASO 4: Dead zone con transición suave ───────────────────────────
-        tiltForward = ApplyDeadZone(tiltForward, deadZone);
-        tiltSide = ApplyDeadZone(tiltSide, deadZone);
-
-        // ── PASO 5: Clamp y construir rotación objetivo ──────────────────────
-        tiltForward = Mathf.Clamp(tiltForward, -maxTiltAngle, maxTiltAngle);
-        tiltSide = Mathf.Clamp(tiltSide, -maxTiltAngle, maxTiltAngle);
-
-        targetRotation = initialRotation * Quaternion.Euler(tiltForward, 0f, tiltSide);
+        Debug.Log(string.Format("Forward: {0:F1}°, Side: {1:F1}° | rawF:{2:F3} rawS:{3:F3}", 
+            tiltForward, tiltSide, rawForward, rawSide));
     }
+    
+    targetRotation = initialRotation * Quaternion.Euler(tiltForward, 0f, tiltSide);
+}
 
-    // Dead zone con salida suave (sin escalón abrupto al entrar/salir)
+
     float ApplyDeadZone(float value, float zone)
     {
         if (zone <= 0f) return value;
