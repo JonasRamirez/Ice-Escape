@@ -1839,6 +1839,7 @@ GameObject:
   - component: {fileID: 1871929152}
   - component: {fileID: 1871929151}
   - component: {fileID: 1871929154}
+  - component: {fileID: 1871929155}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -1900,6 +1901,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1871929155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1871929150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 210a0f9557ebf2440b11a85474701d0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1977317333
@@ -2173,7 +2185,7 @@ GameObject:
   - component: {fileID: 2059401039}
   - component: {fileID: 2059401038}
   m_Layer: 5
-  m_Name: GoBackButtom
+  m_Name: PauseButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2195,8 +2207,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -347.5862, y: -121.37932}
-  m_SizeDelta: {x: 75, y: 75}
+  m_AnchoredPosition: {x: -347.5862, y: 143}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2059401038
 MonoBehaviour:
@@ -2237,8 +2249,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1871929154}
-        m_MethodName: GoToLevelSelector
+      - m_Target: {fileID: 1871929155}
+        m_MethodName: TogglePause
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
