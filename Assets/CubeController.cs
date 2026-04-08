@@ -52,7 +52,7 @@ public class CubeController : MonoBehaviour
     // ─────────────────────────────────────────
     [Header("Alineación al tablero")]
     [Tooltip("Qué tan rápido el cubo se alinea visualmente con la inclinación del tablero")]
-    public float alignmentSpeed = 8f;
+    public float alignmentSpeed = 16f;
   
 
     // ─────────────────────────────────────────
@@ -71,7 +71,7 @@ public class CubeController : MonoBehaviour
 
     [Header("Impacto por velocidad")]
     [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
-    public float impactBreakThreshold = 6f;
+    public float impactBreakThreshold = 0.1f;
 
 
     // ─────────────────────────────────────────
@@ -85,6 +85,7 @@ public class CubeController : MonoBehaviour
     public bool IsGrounded { get { return isGrounded; } }
     private Vector3 lastDebugForce = Vector3.zero;
     private GyroscopeSceneController sceneController; // Variable local para el controlador
+    private Transform boardTransform;
 
     // ─────────────────────────────────────────────────────────────────────
     void Start()
@@ -139,6 +140,15 @@ public class CubeController : MonoBehaviour
         if (sceneController == null)
         {
             Debug.LogError("[CubeController] ¡No se pudo encontrar GyroscopeSceneController! Asegúrate de que el cubo es hijo del tablero o asigna manualmente boardController.");
+            return;
+        }
+
+        boardTransform = sceneController.transform;
+
+        // Un Rigidbody no debe heredar la rotación del tablero o deja de responder de forma natural.
+        if (transform.parent == boardTransform)
+        {
+            transform.SetParent(null, true);
         }
     }
 
@@ -147,7 +157,9 @@ public class CubeController : MonoBehaviour
         rb.mass = initialMass;
         rb.drag = 0f;
         rb.angularDrag = 0f;
-        rb.useGravity = false;
+        rb.useGravity = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
         BoxCollider col = GetComponent<BoxCollider>();
@@ -169,8 +181,7 @@ public class CubeController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     void OnCollisionStay(Collision collision)
     {
-        // Verificar si estamos colisionando con el tablero
-        if (sceneController != null && collision.gameObject == sceneController.gameObject)
+        if (boardTransform != null && collision.transform.IsChildOf(boardTransform))
         {
             isGrounded = true;
         }
@@ -193,7 +204,7 @@ public class CubeController : MonoBehaviour
 
     void OnCollisionExit(Collision collision)
     {
-        if (sceneController != null && collision.gameObject == sceneController.gameObject)
+        if (boardTransform != null && collision.transform.IsChildOf(boardTransform))
         {
             isGrounded = false;
         }
@@ -219,10 +230,20 @@ public class CubeController : MonoBehaviour
         if (impactSound != null)
         {
             StartCoroutine(PlaySoundThenFail());
-            #if UNITY_ANDROID
-                Handheld.Vibrate();
-            #endif
         }
+
+        #if UNITY_ANDROID
+                StartCoroutine(VibrateSoft());
+        #endif
+    }
+
+    IEnumerator VibrateSoft()
+    {
+    #if UNITY_ANDROID
+            Handheld.Vibrate();
+            yield return new WaitForSeconds(0.05f);
+            Handheld.Vibrate();
+    #endif
     }
 
     IEnumerator PlaySoundThenFail()
@@ -244,9 +265,8 @@ public class CubeController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     void FixedUpdate()
     {
-        if (isDead || sceneController == null) return;
+        if (isDead) return;
 
-        ApplySurfaceGravity();
         ApplyFriction();
         ClampSpeed();
         
@@ -317,7 +337,7 @@ public class CubeController : MonoBehaviour
     /// </summary>
     void AlignToBoardSurface()
     {
-        if (sceneController == null) return;
+        if (sceneController == null || !isGrounded) return;
 
         // La rotación objetivo es la misma que la del tablero padre
         Quaternion targetRotation = sceneController.transform.rotation;
@@ -332,7 +352,8 @@ public class CubeController : MonoBehaviour
         if (reachedGoal) return; 
 
         float speed = rb.velocity.magnitude;
-        currentScale -= shrinkPerSpeed * speed / (3);
+        currentScale -= shrinkPerSpeed * speed * 850;
+
 
         if (currentScale <= minScale)
         {
