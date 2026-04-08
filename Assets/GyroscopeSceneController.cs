@@ -253,18 +253,18 @@ public class GyroscopeSceneController : MonoBehaviour
     }
 
     void UpdateWithMouse()
-    {
-        if (!Input.GetMouseButton(0)) return;
+{
+    //if (!Input.GetMouseButton(0)) return;
 
-        float mx = Input.GetAxis("Mouse X") * sensitivitySide * 3f;
-        float my = -Input.GetAxis("Mouse Y") * sensitivityForward * 3f;
+    Vector3 mousePos = Input.mousePosition;
+    float normalizedX = mousePos.x / Screen.width;
+    float normalizedY = mousePos.y / Screen.height;
 
-        Vector3 cur = targetRotation.eulerAngles;
-        float newX = Mathf.Clamp(NormalizeAngle(cur.x) - my, -maxTiltAngle, maxTiltAngle);
-        float newZ = Mathf.Clamp(NormalizeAngle(cur.z) - mx, -maxTiltAngle, maxTiltAngle);
+    float newX = (normalizedX * 2f - 1f) * maxTiltAngle;
+    float newZ = (normalizedY * 2f - 1f) * maxTiltAngle;
 
-        targetRotation = initialRotation * Quaternion.Euler(newX, 0f, newZ);
-    }
+    targetRotation = initialRotation * Quaternion.Euler(newZ, 0f, -newX);
+}
 
     // ────────────────────────────────────────────────────────────────────────
     /// <summary>
