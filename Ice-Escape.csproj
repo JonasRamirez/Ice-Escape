@@ -237,6 +237,7 @@
     <Compile Include="Assets\FireSwitch.cs" />
     <Compile Include="Assets\FireWall.cs" />
     <Compile Include="Assets\GyroscopeSceneController.cs" />
+    <Compile Include="Assets\Pause.cs" />
     <Compile Include="Assets\scene\GyroDebugDisplay.cs" />
     <Compile Include="Assets\scene\LevelManager.cs" />
     <Compile Include="Assets\scene\SceneManager.cs" />

@@ -71,7 +71,9 @@ public class CubeController : MonoBehaviour
 
     [Header("Impacto por velocidad")]
     [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
-    public float impactBreakThreshold = 0.1f;
+    public float impactBreakThreshold = 0.05f;
+
+    public float impactDestroy = 5.0f;
 
 
     // ─────────────────────────────────────────
@@ -196,6 +198,15 @@ public class CubeController : MonoBehaviour
             TriggerFail();
         }
 
+        float impactForce = collision.relativeVelocity.magnitude;
+
+        // Impacto FUERTE → romper
+        if (impactForce >= impactDestroy)
+        {
+            TriggerBreak(); // ← AQUÍ llamas a tu futura animación
+            return;
+        }
+
         if (collision.relativeVelocity.magnitude >= impactBreakThreshold)
         {
             TriggerImpactFeedback();
@@ -209,6 +220,24 @@ public class CubeController : MonoBehaviour
             isGrounded = false;
         }
     }
+
+    void TriggerBreak()
+    {
+        isDead = true;
+
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+
+        Debug.Log("[CubeController] Cubo se rompió por impacto fuerte.");
+
+        // ───── AQUÍ VA TU ANIMACIÓN DE ROMPERSE ─────
+        // Ejemplo futuro:
+        // Instantiate(breakParticles, transform.position, Quaternion.identity);
+        // Play break animation, etc.
+
+        // Por ahora reinicia el nivel directamente
+        RestartLevel();
+    } 
 
     void TriggerFail()
     {
