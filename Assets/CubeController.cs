@@ -83,7 +83,7 @@ public class CubeController : MonoBehaviour
     public long breakVibrationDuration = 80;
 
     [Tooltip("Pequeño delay antes de reiniciar para que el feedback de rotura se alcance a percibir")]
-    public float breakRestartDelay = 0.12f;
+    public float breakRestartDelay = 0.9f;
 
     [Tooltip("Tiempo mínimo entre sonidos de impacto para evitar solaparlos demasiado")]
     public float impactFeedbackCooldown = 0.1f;
@@ -92,10 +92,34 @@ public class CubeController : MonoBehaviour
     public bool testVibrationOnStart = false;
 
     [Header("Impacto por velocidad")]
-    [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
-    public float impactBreakThreshold = 0.01f;
+    [Tooltip("Velocidad mínima de impacto para reproducir feedback (m/s)")]
+    public float impactBreakThreshold = 2.4f;
 
-    public float impactDestroy = 0.025f;
+    [Tooltip("Velocidad mínima para romperse al chocar contra una pared (m/s)")]
+    public float impactDestroy = 6.5f;
+
+    [Header("Rotura del hielo")]
+    [Tooltip("Número de fragmentos por eje. Total = X * Y * Z")]
+    public Vector3Int breakPieces = new Vector3Int(1, 1, 1);
+
+    [Tooltip("Separación visual entre fragmentos al generarlos")]
+    public float breakGap = 0.015f;
+
+    [Tooltip("Fuerza con la que salen disparados los pedazos")]
+    public float breakExplosionForce = 1f;
+
+    [Tooltip("Impulso extra hacia arriba para que la rotura se lea mejor")]
+    public float breakUpwardForce = 0.0005f;
+
+    [Tooltip("Torque aleatorio aplicado a cada fragmento")]
+    public float breakTorque = 2f;
+
+    [Tooltip("Tiempo de vida de los fragmentos antes de destruirse")]
+    public float breakFragmentLifetime = 2f;
+
+    [Tooltip("Si la normal del contacto es muy vertical, se considera piso y no pared")]
+    [Range(0f, 1f)]
+    public float wallNormalLimit = 0.45f;
 
 
     // ─────────────────────────────────────────
@@ -113,11 +137,15 @@ public class CubeController : MonoBehaviour
     private float lastImpactFeedbackTime = float.NegativeInfinity;
     private float originalPitch; // Para guardar el pitch original del AudioSource
     private Coroutine restartCoroutine;
+    private Renderer cachedRenderer;
+    private Collider cachedCollider;
 
     // ─────────────────────────────────────────────────────────────────────
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        cachedRenderer = GetComponent<Renderer>();
+        cachedCollider = GetComponent<Collider>();
 
         currentScale = initialScale;
         totalShrinkRange = 20 + initialScale - minScale;
@@ -257,10 +285,12 @@ public class CubeController : MonoBehaviour
         if (collision.gameObject.CompareTag("deadzone"))
         {
             TriggerFail();
+            return;
         }
 
         float impactForce = collision.relativeVelocity.magnitude;
         Debug.Log("Impact force: " + impactForce);
+        bool isWallImpact = IsWallCollision(collision);
 
         float feedbackThreshold = Mathf.Max(0.01f, Mathf.Min(impactBreakThreshold, impactDestroy));
         float destroyThreshold = Mathf.Max(impactBreakThreshold, impactDestroy);
@@ -272,9 +302,9 @@ public class CubeController : MonoBehaviour
         }
 
         // Impacto FUERTE 
-        if (impactForce >= destroyThreshold)
+        if (isWallImpact && impactForce >= destroyThreshold)
         {
-            TriggerBreak();
+            TriggerBreak(collision);
             return;
         }
 
@@ -288,22 +318,44 @@ public class CubeController : MonoBehaviour
         }
     }
 
-    void TriggerBreak()
+    bool IsWallCollision(Collision collision)
+    {
+        if (collision == null || collision.contacts == null || collision.contacts.Length == 0)
+        {
+            return false;
+        }
+
+        Vector3 upReference = boardTransform != null ? boardTransform.up : Vector3.up;
+
+        for (int i = 0; i < collision.contacts.Length; i++)
+        {
+            ContactPoint contact = collision.contacts[i];
+            float alignment = Mathf.Abs(Vector3.Dot(contact.normal.normalized, upReference));
+            if (alignment <= wallNormalLimit)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void TriggerBreak(Collision collision)
     {
         isDead = true;
+        Vector3 preBreakVelocity = rb.velocity;
 
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
+        rb.detectCollisions = false;
 
         Debug.Log("[CubeController] Cubo se rompió por impacto fuerte.");
 
         // Vibración más fuerte al romperse
         Vibrate(breakVibrationDuration, true);
 
-        // ───── AQUÍ VA TU ANIMACIÓN DE ROMPERSE ─────
-        // Ejemplo futuro:
-        // Instantiate(breakParticles, transform.position, Quaternion.identity);
-        // Play break animation, etc.
+        SpawnBreakFragments(collision, preBreakVelocity);
+        HideOriginalCube();
 
         if (restartCoroutine != null)
         {
@@ -311,6 +363,62 @@ public class CubeController : MonoBehaviour
         }
 
         restartCoroutine = StartCoroutine(RestartLevelAfterDelay(breakRestartDelay));
+    }
+
+    void HideOriginalCube()
+    {
+        if (cachedRenderer != null)
+        {
+            cachedRenderer.enabled = false;
+        }
+
+        if (cachedCollider != null)
+        {
+            cachedCollider.enabled = false;
+        }
+    }
+
+    void SpawnBreakFragments(Collision collision, Vector3 preBreakVelocity)
+    {
+        // Forzar al menos 2x2x2 fragmentos para que se vea bien
+        int piecesX = Mathf.Max(2, breakPieces.x);
+        int piecesY = Mathf.Max(2, breakPieces.y);
+        int piecesZ = Mathf.Max(2, breakPieces.z);
+        int totalPieces = piecesX * piecesY * piecesZ;
+
+        Vector3 pieceSize = new Vector3(
+            transform.lossyScale.x / piecesX,
+            transform.lossyScale.y / piecesY,
+            transform.lossyScale.z / piecesZ);
+        
+        float smallerPieces = 0.9f;
+        pieceSize *= smallerPieces;
+
+        float sizeMultiplier = currentScale * currentScale;
+
+        for (int i = 0; i < totalPieces; i++)
+        {
+            GameObject shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shard.transform.SetPositionAndRotation(transform.position, transform.rotation);
+            shard.transform.localScale = pieceSize - Vector3.one * breakGap;
+
+            Renderer shardRenderer = shard.GetComponent<Renderer>();
+            if (shardRenderer != null && cachedRenderer != null)
+                shardRenderer.sharedMaterial = cachedRenderer.sharedMaterial;
+
+            Rigidbody shardRb = shard.AddComponent<Rigidbody>();
+            shardRb.mass = rb.mass / totalPieces;
+            shardRb.interpolation = RigidbodyInterpolation.Interpolate;
+            
+            Vector3 randomDir = Random.onUnitSphere;
+            randomDir.y = Mathf.Abs(randomDir.y); 
+            
+            float forceMultiplier = 0.005f;
+            shardRb.AddForce(randomDir * breakExplosionForce * sizeMultiplier * forceMultiplier, ForceMode.Force);
+            shardRb.AddTorque(Random.insideUnitSphere * breakTorque * sizeMultiplier * 0.1f, ForceMode.Force);
+
+            Destroy(shard, breakFragmentLifetime);
+        }
     }
 
     void TriggerFail()
