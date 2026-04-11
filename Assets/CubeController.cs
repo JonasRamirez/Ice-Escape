@@ -71,9 +71,9 @@ public class CubeController : MonoBehaviour
 
     [Header("Impacto por velocidad")]
     [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
-    public float impactBreakThreshold = 0.05f;
+    public float impactBreakThreshold = 0.01f;
 
-    public float impactDestroy = 5.0f;
+    public float impactDestroy = 4.7f;
 
 
     // ─────────────────────────────────────────
@@ -88,6 +88,11 @@ public class CubeController : MonoBehaviour
     private Vector3 lastDebugForce = Vector3.zero;
     private GyroscopeSceneController sceneController; // Variable local para el controlador
     private Transform boardTransform;
+#if UNITY_ANDROID
+    private AndroidJavaObject vibratorService;
+    private bool vibratorChecked = false;
+    private bool canVibrate = false;
+#endif
 
     // ─────────────────────────────────────────────────────────────────────
     void Start()
@@ -138,6 +143,8 @@ public class CubeController : MonoBehaviour
                 }
             }
         }
+
+        InitializeVibration();
 
         if (sceneController == null)
         {
@@ -199,18 +206,22 @@ public class CubeController : MonoBehaviour
         }
 
         float impactForce = collision.relativeVelocity.magnitude;
+        Debug.Log("Impact force: " + impactForce);
 
-        // Impacto FUERTE → romper
-        if (impactForce >= impactDestroy)
-        {
-            TriggerBreak(); // ← AQUÍ llamas a tu futura animación
-            return;
-        }
 
-        if (collision.relativeVelocity.magnitude >= impactBreakThreshold)
+        // Impacto No tan fuerte
+        if (impactForce >= impactBreakThreshold)
         {
             TriggerImpactFeedback();
         }
+
+        // Impacto FUERTE 
+        if (impactForce >= impactDestroy)
+        {
+            TriggerBreak();
+            return;
+        }
+        
     }
 
     void OnCollisionExit(Collision collision)
@@ -256,29 +267,107 @@ public class CubeController : MonoBehaviour
 
     void TriggerImpactFeedback()
     {
-        if (impactSound != null)
+        PlayImpactSound();
+        Vibrate(vibrationDuration);
+    }
+
+    void PlayImpactSound()
+    {
+        if (impactSound == null) return;
+        if (impactSound.clip == null)
         {
-            StartCoroutine(PlaySoundThenFail());
+            Debug.LogWarning("[CubeController] impactSound no tiene clip asignado.");
+            return;
         }
 
-        #if UNITY_ANDROID
-                StartCoroutine(VibrateSoft());
-        #endif
+        impactSound.PlayOneShot(impactSound.clip);
+        Debug.Log("[CubeController] Sonido de impacto reproducido.");
     }
 
     IEnumerator VibrateSoft()
     {
-    #if UNITY_ANDROID
-            Handheld.Vibrate();
-            yield return new WaitForSeconds(0.05f);
-            Handheld.Vibrate();
-    #endif
+        Vibrate(vibrationDuration);
+        yield return new WaitForSeconds(0.05f);
+        Vibrate(vibrationDuration);
     }
 
-    IEnumerator PlaySoundThenFail()
+    IEnumerator TestVibrationOnStart()
     {
-        impactSound.PlayOneShot(impactSound.clip);
-        yield return new WaitForSeconds(impactSound.clip.length);
+        yield return new WaitForSeconds(0.25f);
+        Debug.Log("[CubeController] Ejecutando vibracion de prueba al iniciar.");
+        StartCoroutine(VibrateSoft());
+    }
+
+    void InitializeVibration()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try
+        {
+            using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                vibratorService = currentActivity.Call<AndroidJavaObject>("getSystemService", "vibrator");
+            }
+
+            vibratorChecked = true;
+            canVibrate = vibratorService != null && vibratorService.Call<bool>("hasVibrator");
+            Debug.Log("[CubeController] Vibrator inicializado. Disponible: " + canVibrate);
+        }
+        catch (System.Exception ex)
+        {
+            vibratorChecked = true;
+            canVibrate = false;
+            Debug.LogWarning("[CubeController] No se pudo inicializar vibracion Android: " + ex.Message);
+        }
+#else
+        Debug.Log("[CubeController] Vibracion nativa disponible solo en Android dispositivo.");
+#endif
+    }
+
+    void Vibrate(long durationMs)
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (!vibratorChecked)
+        {
+            InitializeVibration();
+        }
+
+        if (!canVibrate || vibratorService == null)
+        {
+            Debug.LogWarning("[CubeController] Vibracion no disponible en este dispositivo o no se inicializo correctamente.");
+            return;
+        }
+
+        long safeDuration = Mathf.Max(1, (int)durationMs);
+
+        try
+        {
+            using (AndroidJavaClass version = new AndroidJavaClass("android.os.Build$VERSION"))
+            {
+                int sdkInt = version.GetStatic<int>("SDK_INT");
+                if (sdkInt >= 26)
+                {
+                    using (AndroidJavaClass vibrationEffectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                    {
+                        AndroidJavaObject effect = vibrationEffectClass.CallStatic<AndroidJavaObject>("createOneShot", safeDuration, vibrationEffectClass.GetStatic<int>("DEFAULT_AMPLITUDE"));
+                        vibratorService.Call("vibrate", effect);
+                    }
+                }
+                else
+                {
+                    vibratorService.Call("vibrate", safeDuration);
+                }
+            }
+
+            Debug.Log("[CubeController] Vibracion lanzada por " + safeDuration + " ms.");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning("[CubeController] Error al vibrar: " + ex.Message);
+        }
+#elif UNITY_ANDROID
+        Debug.Log("[CubeController] Prueba de vibracion omitida en Editor.");
+#endif
     }
 
 

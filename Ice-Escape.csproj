@@ -245,6 +245,9 @@
     <Compile Include="Assets\UI\UILevel.cs" />
     <Compile Include="Assets\WaterTrailPainter.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Plugins\Android\AndroidManifest.xml" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
 </Project>

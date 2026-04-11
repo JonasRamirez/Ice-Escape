@@ -371,10 +371,15 @@ public class GyroscopeSceneController : MonoBehaviour
         float normalizedX = mousePos.x / Screen.width;
         float normalizedY = mousePos.y / Screen.height;
 
-        float newX = (normalizedX * 2f - 1f) * maxTiltAngle;
-        float newZ = (normalizedY * 2f - 1f) * maxTiltAngle;
+        float targetX = (normalizedX * 2f - 1f) * maxTiltAngle;
+        float targetZ = (normalizedY * 2f - 1f) * maxTiltAngle;
 
-        targetRotation = initialRotation * Quaternion.Euler(newZ, 0f, -newX);
+        // Usar el mismo smoothedTilt que el giroscopio
+        Vector2 targetTilt = new Vector2(-targetX, targetZ);
+        float smoothT = 1f - Mathf.Exp(-tiltSmoothing * Time.deltaTime);
+        smoothedTilt = Vector2.Lerp(smoothedTilt, targetTilt, smoothT);
+
+        targetRotation = initialRotation * Quaternion.Euler(smoothedTilt.y, 0f, smoothedTilt.x);
     }
 
     // ────────────────────────────────────────────────────────────────────────
