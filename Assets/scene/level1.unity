@@ -139,7 +139,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: bbdb3a83d1efc5a4fba9122fe83c80d6, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -2098,7 +2098,8 @@ MonoBehaviour:
   boardHalfZ: 4.5
   impactSound: {fileID: 49819670}
   vibrationDuration: 30
-  impactBreakThreshold: 6
+  impactFeedbackCooldown: 0.08
+  impactBreakThreshold: 0.4
   impactDestroy: 4.5
 --- !u!23 &1978006070
 MeshRenderer:

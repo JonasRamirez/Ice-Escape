@@ -53,7 +53,7 @@ public class CubeController : MonoBehaviour
     [Header("Alineación al tablero")]
     [Tooltip("Qué tan rápido el cubo se alinea visualmente con la inclinación del tablero")]
     public float alignmentSpeed = 16f;
-  
+
 
     // ─────────────────────────────────────────
     //  LÍMITES DEL TABLERO
@@ -66,14 +66,36 @@ public class CubeController : MonoBehaviour
     [Tooltip("AudioSource con el sonido de choque")]
     public AudioSource impactSound;
 
+    [Header("Sonidos Variados")]
+    [Tooltip("Array de sonidos de impacto (seleccionará uno aleatorio)")]
+    public AudioClip[] impactSounds;
+
+    [Tooltip("Si está activado, varía ligeramente el pitch del sonido")]
+    public bool randomizePitch = true;
+
+    [Tooltip("Rango de variación del pitch (mínimo y máximo)")]
+    public Vector2 pitchRange = new Vector2(0.9f, 1.1f);
+
     [Tooltip("Duración de la vibración en milisegundos")]
     public long vibrationDuration = 30;
+
+    [Tooltip("Duración de la vibración al romperse (más fuerte)")]
+    public long breakVibrationDuration = 80;
+
+    [Tooltip("Pequeño delay antes de reiniciar para que el feedback de rotura se alcance a percibir")]
+    public float breakRestartDelay = 0.12f;
+
+    [Tooltip("Tiempo mínimo entre sonidos de impacto para evitar solaparlos demasiado")]
+    public float impactFeedbackCooldown = 0.1f;
+
+    [Tooltip("Lanza una vibración de prueba al iniciar en dispositivo para verificar que el hardware responde")]
+    public bool testVibrationOnStart = false;
 
     [Header("Impacto por velocidad")]
     [Tooltip("Velocidad mínima de impacto para recibir daño (m/s)")]
     public float impactBreakThreshold = 0.01f;
 
-    public float impactDestroy = 4.7f;
+    public float impactDestroy = 0.025f;
 
 
     // ─────────────────────────────────────────
@@ -88,11 +110,9 @@ public class CubeController : MonoBehaviour
     private Vector3 lastDebugForce = Vector3.zero;
     private GyroscopeSceneController sceneController; // Variable local para el controlador
     private Transform boardTransform;
-#if UNITY_ANDROID
-    private AndroidJavaObject vibratorService;
-    private bool vibratorChecked = false;
-    private bool canVibrate = false;
-#endif
+    private float lastImpactFeedbackTime = float.NegativeInfinity;
+    private float originalPitch; // Para guardar el pitch original del AudioSource
+    private Coroutine restartCoroutine;
 
     // ─────────────────────────────────────────────────────────────────────
     void Start()
@@ -100,11 +120,12 @@ public class CubeController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
 
         currentScale = initialScale;
-        totalShrinkRange = 20+ initialScale - minScale;
+        totalShrinkRange = 20 + initialScale - minScale;
 
         transform.localScale = Vector3.one * currentScale;
 
         SetupRigidbody();
+        ConfigureImpactSound();
 
         // Buscar el controlador automáticamente
         if (boardController == null && transform.parent != null)
@@ -146,6 +167,11 @@ public class CubeController : MonoBehaviour
 
         InitializeVibration();
 
+        if (testVibrationOnStart)
+        {
+            StartCoroutine(TestVibrationOnStart());
+        }
+
         if (sceneController == null)
         {
             Debug.LogError("[CubeController] ¡No se pudo encontrar GyroscopeSceneController! Asegúrate de que el cubo es hijo del tablero o asigna manualmente boardController.");
@@ -183,7 +209,35 @@ public class CubeController : MonoBehaviour
             col.material = mat;
         }
     }
-    
+
+    void ConfigureImpactSound()
+    {
+        if (impactSound == null)
+        {
+            impactSound = GetComponent<AudioSource>();
+        }
+
+        if (impactSound == null)
+        {
+            impactSound = GetComponentInChildren<AudioSource>(true);
+        }
+
+        if (impactSound == null)
+        {
+            Debug.LogWarning("[CubeController] No se encontró AudioSource para impactos en " + gameObject.name + ".");
+            return;
+        }
+
+        impactSound.playOnAwake = false;
+        impactSound.loop = false;
+
+        // Guardar el pitch original
+        if (impactSound != null)
+        {
+            originalPitch = impactSound.pitch;
+        }
+    }
+
 
     // ─────────────────────────────────────────────────────────────────────
     //  DETECCIÓN DE COLISIONES
@@ -208,20 +262,22 @@ public class CubeController : MonoBehaviour
         float impactForce = collision.relativeVelocity.magnitude;
         Debug.Log("Impact force: " + impactForce);
 
+        float feedbackThreshold = Mathf.Max(0.01f, Mathf.Min(impactBreakThreshold, impactDestroy));
+        float destroyThreshold = Mathf.Max(impactBreakThreshold, impactDestroy);
 
         // Impacto No tan fuerte
-        if (impactForce >= impactBreakThreshold)
+        if (impactForce >= feedbackThreshold)
         {
             TriggerImpactFeedback();
         }
 
         // Impacto FUERTE 
-        if (impactForce >= impactDestroy)
+        if (impactForce >= destroyThreshold)
         {
             TriggerBreak();
             return;
         }
-        
+
     }
 
     void OnCollisionExit(Collision collision)
@@ -241,14 +297,21 @@ public class CubeController : MonoBehaviour
 
         Debug.Log("[CubeController] Cubo se rompió por impacto fuerte.");
 
+        // Vibración más fuerte al romperse
+        Vibrate(breakVibrationDuration, true);
+
         // ───── AQUÍ VA TU ANIMACIÓN DE ROMPERSE ─────
         // Ejemplo futuro:
         // Instantiate(breakParticles, transform.position, Quaternion.identity);
         // Play break animation, etc.
 
-        // Por ahora reinicia el nivel directamente
-        RestartLevel();
-    } 
+        if (restartCoroutine != null)
+        {
+            StopCoroutine(restartCoroutine);
+        }
+
+        restartCoroutine = StartCoroutine(RestartLevelAfterDelay(breakRestartDelay));
+    }
 
     void TriggerFail()
     {
@@ -267,28 +330,83 @@ public class CubeController : MonoBehaviour
 
     void TriggerImpactFeedback()
     {
-        PlayImpactSound();
-        Vibrate(vibrationDuration);
+        if (Time.time - lastImpactFeedbackTime < impactFeedbackCooldown) return;
+
+        lastImpactFeedbackTime = Time.time;
+        PlayRandomImpactSound();
     }
 
-    void PlayImpactSound()
+    void PlayRandomImpactSound()
     {
-        if (impactSound == null) return;
-        if (impactSound.clip == null)
+        if (impactSound == null)
         {
-            Debug.LogWarning("[CubeController] impactSound no tiene clip asignado.");
+            ConfigureImpactSound();
+            if (impactSound == null) return;
+        }
+
+        // Seleccionar un sonido aleatorio del array
+        AudioClip clipToPlay = null;
+
+        if (impactSounds != null && impactSounds.Length > 0)
+        {
+            // Filtrar clips nulos
+            List<AudioClip> validClips = new List<AudioClip>();
+            foreach (var clip in impactSounds)
+            {
+                if (clip != null) validClips.Add(clip);
+            }
+
+            if (validClips.Count > 0)
+            {
+                int randomIndex = Random.Range(0, validClips.Count);
+                clipToPlay = validClips[randomIndex];
+                Debug.Log("[CubeController] Reproduciendo sonido de impacto " + (randomIndex + 1) + " de " + validClips.Count);
+            }
+        }
+
+        // Si no hay sonidos en el array o todos son nulos, usar el clip por defecto del AudioSource
+        if (clipToPlay == null && impactSound.clip != null)
+        {
+            clipToPlay = impactSound.clip;
+            Debug.Log("[CubeController] Usando sonido por defecto del AudioSource");
+        }
+
+        if (clipToPlay == null)
+        {
+            Debug.LogWarning("[CubeController] No hay sonidos de impacto asignados.");
             return;
         }
 
-        impactSound.PlayOneShot(impactSound.clip);
-        Debug.Log("[CubeController] Sonido de impacto reproducido.");
+        // Randomizar pitch si está activado
+        if (randomizePitch && impactSound != null)
+        {
+            impactSound.pitch = Random.Range(pitchRange.x, pitchRange.y);
+        }
+
+        // Reproducir el sonido
+        impactSound.PlayOneShot(clipToPlay);
+
+        // Restaurar el pitch original después de un breve momento
+        if (randomizePitch && impactSound != null)
+        {
+            StartCoroutine(RestorePitchAfterDelay(clipToPlay.length));
+        }
+    }
+
+    IEnumerator RestorePitchAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (impactSound != null)
+        {
+            impactSound.pitch = originalPitch;
+        }
     }
 
     IEnumerator VibrateSoft()
     {
-        Vibrate(vibrationDuration);
+        Vibrate(vibrationDuration, false);
         yield return new WaitForSeconds(0.05f);
-        Vibrate(vibrationDuration);
+        Vibrate(vibrationDuration, false);
     }
 
     IEnumerator TestVibrationOnStart()
@@ -300,74 +418,47 @@ public class CubeController : MonoBehaviour
 
     void InitializeVibration()
     {
-#if UNITY_ANDROID && !UNITY_EDITOR
-        try
-        {
-            using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-            {
-                AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-                vibratorService = currentActivity.Call<AndroidJavaObject>("getSystemService", "vibrator");
-            }
-
-            vibratorChecked = true;
-            canVibrate = vibratorService != null && vibratorService.Call<bool>("hasVibrator");
-            Debug.Log("[CubeController] Vibrator inicializado. Disponible: " + canVibrate);
-        }
-        catch (System.Exception ex)
-        {
-            vibratorChecked = true;
-            canVibrate = false;
-            Debug.LogWarning("[CubeController] No se pudo inicializar vibracion Android: " + ex.Message);
-        }
+#if UNITY_ANDROID || UNITY_IOS
+        Debug.Log("[CubeController] Vibracion inicializada con Handheld.Vibrate().");
 #else
         Debug.Log("[CubeController] Vibracion nativa disponible solo en Android dispositivo.");
 #endif
     }
 
-    void Vibrate(long durationMs)
+    void Vibrate(long durationMs, bool isStrongVibration)
     {
-#if UNITY_ANDROID && !UNITY_EDITOR
-        if (!vibratorChecked)
-        {
-            InitializeVibration();
-        }
-
-        if (!canVibrate || vibratorService == null)
-        {
-            Debug.LogWarning("[CubeController] Vibracion no disponible en este dispositivo o no se inicializo correctamente.");
-            return;
-        }
-
-        long safeDuration = Mathf.Max(1, (int)durationMs);
-
-        try
-        {
-            using (AndroidJavaClass version = new AndroidJavaClass("android.os.Build$VERSION"))
-            {
-                int sdkInt = version.GetStatic<int>("SDK_INT");
-                if (sdkInt >= 26)
-                {
-                    using (AndroidJavaClass vibrationEffectClass = new AndroidJavaClass("android.os.VibrationEffect"))
-                    {
-                        AndroidJavaObject effect = vibrationEffectClass.CallStatic<AndroidJavaObject>("createOneShot", safeDuration, vibrationEffectClass.GetStatic<int>("DEFAULT_AMPLITUDE"));
-                        vibratorService.Call("vibrate", effect);
-                    }
-                }
-                else
-                {
-                    vibratorService.Call("vibrate", safeDuration);
-                }
-            }
-
-            Debug.Log("[CubeController] Vibracion lanzada por " + safeDuration + " ms.");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning("[CubeController] Error al vibrar: " + ex.Message);
-        }
-#elif UNITY_ANDROID
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+        TriggerHandheldVibration(isStrongVibration);
+#elif UNITY_ANDROID || UNITY_IOS
         Debug.Log("[CubeController] Prueba de vibracion omitida en Editor.");
 #endif
+    }
+
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+    void TriggerHandheldVibration(bool isStrongVibration)
+    {
+        Handheld.Vibrate();
+
+        if (isStrongVibration)
+        {
+            StartCoroutine(RepeatHandheldVibration(0.08f, 2));
+        }
+    }
+
+    IEnumerator RepeatHandheldVibration(float delay, int extraPulses)
+    {
+        for (int i = 0; i < extraPulses; i++)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            Handheld.Vibrate();
+        }
+    }
+#endif
+
+    IEnumerator RestartLevelAfterDelay(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        RestartLevel();
     }
 
 
@@ -387,7 +478,7 @@ public class CubeController : MonoBehaviour
 
         ApplyFriction();
         ClampSpeed();
-        
+
     }
 
     /// <summary>
@@ -467,7 +558,7 @@ public class CubeController : MonoBehaviour
     // Modifica Shrink() así:
     void Shrink()
     {
-        if (reachedGoal) return; 
+        if (reachedGoal) return;
 
         float speed = rb.velocity.magnitude;
         currentScale -= shrinkPerSpeed * speed * 850;
@@ -558,7 +649,7 @@ public class CubeController : MonoBehaviour
 
         transform.localPosition = localPos;
         rb.velocity = transform.parent.TransformDirection(localVel);
-        
+
     }
 
     void BounceOnAxis(ref Vector3 localPos, char axis, bool positive)

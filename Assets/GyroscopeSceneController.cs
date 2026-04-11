@@ -291,12 +291,17 @@ public class GyroscopeSceneController : MonoBehaviour
         float tiltForward = Mathf.Asin(Mathf.Clamp(rawForward, -0.99f, 0.99f)) * Mathf.Rad2Deg;
         float tiltSide = Mathf.Asin(Mathf.Clamp(rawSide, -0.99f, 0.99f)) * Mathf.Rad2Deg;
 
+        // ⭐⭐⭐ MODIFICACIÓN PARA MOVIMIENTO MÁS EXAGERADO ⭐⭐⭐
+        float exaggerationMultiplier = 1.15f;
+        tiltForward *= exaggerationMultiplier;
+        tiltSide *= exaggerationMultiplier;
+
+        // Clamp más amplio para permitir ángulos extremos
+        float extendedMaxAngle = maxTiltAngle * exaggerationMultiplier;
+        tiltForward = Mathf.Clamp(tiltForward, -extendedMaxAngle, extendedMaxAngle);
+        tiltSide = Mathf.Clamp(tiltSide, -extendedMaxAngle, extendedMaxAngle);
+
         // ── 5. Remapeo radial + dead zone suave + curva de respuesta ──────
-        //   Trabajar en coordenadas polares permite:
-        //     a) Dead zone uniforme en todas las direcciones (incluidas esquinas).
-        //     b) Curva de respuesta aplicada a la magnitud total, no por eje.
-        //     c) Las esquinas diagonales alcanzan la misma magnitud máxima
-        //        que los ejes puros.
         Vector2 tilt = new Vector2(tiltSide, tiltForward);
         float magnitude = tilt.magnitude;
 
@@ -308,24 +313,19 @@ public class GyroscopeSceneController : MonoBehaviour
 
             if (magnitude >= outer)
             {
-                // Fuera de la zona de transición: mapeo directo
-                // Escala para que outer corresponda a 0° y maxTilt a maxTiltAngle
-                float range = maxTiltAngle - outer;
+                float range = extendedMaxAngle - outer;
                 remappedMag = outer + Mathf.Clamp(magnitude - outer, 0f, range);
             }
             else
             {
-                // Zona de transición suave (smoothstep entre inner y outer)
                 float t = (magnitude - deadZoneInner) / (outer - deadZoneInner);
-                t = t * t * (3f - 2f * t);  // smoothstep
+                t = t * t * (3f - 2f * t);
                 remappedMag = Mathf.Lerp(0f, outer, t);
             }
 
-            // Curva de respuesta sobre la magnitud normalizada [0,1]
-            float normalizedMag = Mathf.Clamp01(remappedMag / maxTiltAngle);
-            float curvedMag = Mathf.Pow(normalizedMag, responseCurve) * maxTiltAngle;
+            float normalizedMag = Mathf.Clamp01(remappedMag / extendedMaxAngle);
+            float curvedMag = Mathf.Pow(normalizedMag, responseCurve) * extendedMaxAngle;
 
-            // Re-proyectar manteniendo la dirección original
             tilt = tilt.normalized * curvedMag;
         }
         else
@@ -345,16 +345,7 @@ public class GyroscopeSceneController : MonoBehaviour
         }
 
         // ── 7. Rotación objetivo ──────────────────────────────────────────
-        // smoothedTilt.x = side, smoothedTilt.y = forward
         targetRotation = initialRotation * Quaternion.Euler(smoothedTilt.y, 0f, smoothedTilt.x);
-
-        // ── 8. Debug ──────────────────────────────────────────────────────
-        if (smoothedTilt.magnitude > 0.5f && Time.frameCount % 120 == 0)
-        {
-            Debug.Log(string.Format(
-                "[GyroController] Forward:{0:F1}° Side:{1:F1}° | Magnitud:{2:F1}°",
-                smoothedTilt.y, smoothedTilt.x, smoothedTilt.magnitude));
-        }
     }
 
     // ────────────────────────────────────────────────────────────────────────
