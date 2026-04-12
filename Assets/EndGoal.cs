@@ -224,8 +224,7 @@ public class EndGoal : MonoBehaviour
 
     void NextLevel()
     {
-        Time.timeScale = 1f;
-
         gameManager.CompleteLevel();
+        Time.timeScale = 1f;
     }
 }
