@@ -447,8 +447,8 @@ public class GyroscopeSceneController : MonoBehaviour
         // Configurar colores del botón para feedback al presionar
         ColorBlock colors = button.colors;
         colors.normalColor = color;
-        colors.highlightedColor = new Color(color.r, color.g, color.b, color.a + 0.2f);
-        colors.pressedColor = new Color(color.r, color.g, color.b, color.a + 0.3f);
+        colors.highlightedColor = new Color(color.r, color.g, color.b, Mathf.Clamp01(color.a * 0.85f));
+        colors.pressedColor = new Color(color.r, color.g, color.b, Mathf.Clamp01(color.a * 0.45f));
         colors.disabledColor = color;
         button.colors = colors;
 

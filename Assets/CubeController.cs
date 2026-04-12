@@ -25,8 +25,8 @@ public class CubeController : MonoBehaviour
     public float minScale = 0.05f;
 
     [Tooltip("Velocidad de encogimiento (unidades/segundo)")]
-    public float shrinkRate = 0.0004f;
-    public float shrinkPerSpeed = 0.0000005f;
+    public float shrinkRate = 0.00004f;
+    public float shrinkPerSpeed = 0.00000005f;
 
     [Header("Física")]
     [Tooltip("Masa inicial del cubo")]
@@ -669,7 +669,7 @@ public class CubeController : MonoBehaviour
         if (reachedGoal) return;
 
         float speed = rb.velocity.magnitude;
-        currentScale -= shrinkPerSpeed * speed * 850;
+        currentScale -= shrinkPerSpeed * speed * 600;
 
 
         if (currentScale <= minScale)
@@ -677,6 +677,7 @@ public class CubeController : MonoBehaviour
             currentScale = minScale;
             isDead = true;
             OnCubeDied();
+            RestartLevel();
             return;
         }
 

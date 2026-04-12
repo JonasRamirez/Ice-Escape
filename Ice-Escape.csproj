@@ -238,9 +238,9 @@
     <Compile Include="Assets\FireWall.cs" />
     <Compile Include="Assets\GyroscopeSceneController.cs" />
     <Compile Include="Assets\Pause.cs" />
+    <Compile Include="Assets\scene\GameManager.cs" />
     <Compile Include="Assets\scene\GyroDebugDisplay.cs" />
     <Compile Include="Assets\scene\LevelManager.cs" />
-    <Compile Include="Assets\scene\SceneManager.cs" />
     <Compile Include="Assets\scene\tutorialImages.cs" />
     <Compile Include="Assets\UI\UILevel.cs" />
     <Compile Include="Assets\WaterTrailPainter.cs" />
