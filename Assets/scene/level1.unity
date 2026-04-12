@@ -1140,7 +1140,7 @@ MonoBehaviour:
       Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
   m_FontData:
     m_Font: {fileID: 12800000, guid: c4c58cd186338ef4f916193e00ecbc25, type: 3}
-    m_FontSize: 60
+    m_FontSize: 30
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 0
@@ -1151,7 +1151,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u2190"
+  m_Text: '| |'
 --- !u!222 &965982103
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1850,6 +1850,7 @@ GameObject:
   - component: {fileID: 1871929151}
   - component: {fileID: 1871929154}
   - component: {fileID: 1871929155}
+  - component: {fileID: 1871929156}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -1913,6 +1914,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  txtLvlDisplay: {fileID: 593006617}
 --- !u!114 &1871929155
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1922,6 +1924,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 210a0f9557ebf2440b11a85474701d0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1871929156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1871929150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa8639023f36b5a4bb50dc545d9efe52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1977317333
@@ -2097,10 +2110,23 @@ MonoBehaviour:
   boardHalfX: 4.5
   boardHalfZ: 4.5
   impactSound: {fileID: 49819670}
+  impactSounds: []
+  randomizePitch: 1
+  pitchRange: {x: 0.9, y: 1.1}
   vibrationDuration: 30
+  breakVibrationDuration: 80
+  breakRestartDelay: 0.9
   impactFeedbackCooldown: 0.08
+  testVibrationOnStart: 0
   impactBreakThreshold: 0.4
   impactDestroy: 4.5
+  breakPieces: {x: 1, y: 1, z: 1}
+  breakGap: 0.015
+  breakExplosionForce: 1
+  breakUpwardForce: 0.0005
+  breakTorque: 2
+  breakFragmentLifetime: 2
+  wallNormalLimit: 0.45
 --- !u!23 &1978006070
 MeshRenderer:
   m_ObjectHideFlags: 0

@@ -1,90 +1,83 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; 
 using System.Collections;
+using UnityEngine.UI; 
+using UnityEngine.SceneManagement;
+
 
 public class LevelManager : MonoBehaviour
 {
-    public static int currentLevel = 1;
+    [Header("Level Management")]
+    public Text txtLvlDisplay;
 
+    private int currentLevelIndex;
+    private string currentLevelName;
+    
     void Start()
     {
-        //Debug.Log("Cargando nivel " + currentLevel);
+        currentLevelIndex = SceneManager.GetActiveScene().buildIndex;
+        currentLevelName = SceneManager.GetActiveScene().name;
+
+        if (txtLvlDisplay != null)
+        {
+            txtLvlDisplay.text = "Nivel " + ExtractLevelNumber(currentLevelName);
+        }
     }
 
-    // Nueva función que lee el texto del botón que llamó al método
-    public void SendLevelFromButton(Button button)
+    public int ExtractLevelNumber(string sceneName)
     {
-        // Obtener el texto del botón
-        string buttonText = button.GetComponentInChildren<Text>().text;
-
-        // Intentar convertir el texto a número
-        int levelNumber;
-
-        if (int.TryParse(buttonText, out levelNumber))
-        {
-            // Si el texto es un número, cargar ese nivel
-            currentLevel = levelNumber;
-            Application.LoadLevel("level" + levelNumber);
-            Debug.Log("Cargando nivel " + levelNumber + " desde botón con texto: " + buttonText);
-        }
-        else
-        {
-            Debug.LogError("El texto del botón no es un número válido: " + buttonText);
-        }
+        string numberPart = sceneName.Replace("level", "");
+        Debug.Log("[LevelManager] Lvl Number: " + int.Parse(numberPart));
+        return int.Parse(numberPart);
     }
 
-    // Versión alternativa: si el botón tiene un componente Text específico
-    public void SendLevelFromText(Text buttonText)
+    // Método para cargar cualquier escena por nombre
+    public void LoadScene(string sceneName)
     {
-        // Obtener el texto
-        string text = buttonText.text;
-
-        // Intentar convertir a número
-        int levelNumber;
-
-        if (int.TryParse(text, out levelNumber))
-        {
-            Application.LoadLevel("level" + levelNumber);
-            Debug.Log("Cargando nivel " + levelNumber);
-        }
-        else
-        {
-            Debug.LogError("El texto no es un número válido: " + text);
-        }
+        Application.LoadLevel(sceneName);
     }
 
-    // Versión aún más simple: usar string directamente
-    public void SendLevelFromString(string levelName)
+    // Método para cargar por índice (más eficiente)
+    public void LoadSceneByIndex(int sceneIndex)
     {
-        int levelNumber = int.Parse(levelName);
-        currentLevel = levelNumber;
-        Application.LoadLevel("level" + levelName);
-        Debug.Log("Cargando nivel: level" + levelName);
+        Application.LoadLevel(sceneIndex);
     }
 
-    // Método para completar el nivel
-    public void CompleteLevel()
-    {
-        if (currentLevel < 5)
-        {
-            Application.LoadLevel("level" + (currentLevel + 1));
-        }
-        else
-        {
-            Application.LoadLevel("mainscene");
-        }
-    }
-
-    public void RestartLevel()
-    {
-        Application.LoadLevel("level" + currentLevel);
-    }
-
-    // Método para volver al selector
-    public void BackToSelector()
+    // Método específico para ir al selector de niveles
+    public void GoToLevelSelector()
     {
         Application.LoadLevel("levelselectorscene");
+    }
+
+    // Método para ir al menú principal
+    public void GoToMainMenu()
+    {
+        Application.LoadLevel("mainscene");
+    }
+
+    // Método para cargar niveles específicos
+    public void LoadLevel(int levelNumber)
+    {
+        if (levelNumber >= 1 && levelNumber <= 5)
+        {
+            Application.LoadLevel("level" + levelNumber);
+        }
+        else
+        {
+            Debug.LogError("Nivel no válido: " + levelNumber);
+        }
+    }
+
+    public void LoadNextLevel()
+    {
+        if (currentLevelIndex < 5)
+        {
+            Application.LoadLevel("level" + (currentLevelIndex + 1));
+        }
+        else
+        {
+            GoToMainMenu();
+        }
     }
 }

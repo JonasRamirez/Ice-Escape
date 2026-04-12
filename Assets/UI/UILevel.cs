@@ -9,8 +9,8 @@ public class UILevel : MonoBehaviour {
 
     void Start()
     {
-        levelText.text = "Nivel " + LevelManager.currentLevel;
-        Invoke("HideText", 2f);
+        //levelText.text = "Nivel " + LevelManager.currentLevel;
+        //Invoke("HideText", 2f);
     }
 
     void HideText()

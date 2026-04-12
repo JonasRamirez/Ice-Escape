@@ -549,6 +549,7 @@ GameObject:
   - component: {fileID: 573233666}
   - component: {fileID: 573233665}
   - component: {fileID: 573233668}
+  - component: {fileID: 573233669}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -612,6 +613,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 210a0f9557ebf2440b11a85474701d0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &573233669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 573233664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  txtLvlDisplay: {fileID: 734934388}
 --- !u!1 &602419815
 GameObject:
   m_ObjectHideFlags: 0
@@ -850,7 +863,7 @@ MonoBehaviour:
       Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
   m_FontData:
     m_Font: {fileID: 12800000, guid: c4c58cd186338ef4f916193e00ecbc25, type: 3}
-    m_FontSize: 60
+    m_FontSize: 30
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 0
@@ -861,7 +874,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u2190"
+  m_Text: '| |'
 --- !u!222 &723428108
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1426,6 +1439,102 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &1347404468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1347404463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a34c1cb956d4f54439e75482d26e6baa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boardController: {fileID: 0}
+  initialScale: 1
+  minScale: 0.05
+  shrinkRate: 0.0004
+  shrinkPerSpeed: 0.0000005
+  initialMass: 2
+  minMass: 0.1
+  gravityScale: 15
+  maxSpeed: 10
+  surfaceFriction: 0.05
+  reachedGoal: 0
+  alignmentSpeed: 8
+  boardHalfX: 4.5
+  boardHalfZ: 4.5
+  impactSound: {fileID: 1347404472}
+  impactSounds: []
+  randomizePitch: 1
+  pitchRange: {x: 0.9, y: 1.1}
+  vibrationDuration: 30
+  breakVibrationDuration: 80
+  breakRestartDelay: 0.9
+  impactFeedbackCooldown: 0.1
+  testVibrationOnStart: 0
+  impactBreakThreshold: 6
+  impactDestroy: 6.5
+  breakPieces: {x: 1, y: 1, z: 1}
+  breakGap: 0.015
+  breakExplosionForce: 1
+  breakUpwardForce: 0.0005
+  breakTorque: 2
+  breakFragmentLifetime: 2
+  wallNormalLimit: 0.45
+--- !u!23 &1347404469
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1347404463}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 89e86ae623c318a4db3752fb58ff9020, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+--- !u!65 &1347404470
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1347404463}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!33 &1347404471
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1347404463}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!82 &1347404472
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1506,87 +1615,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
---- !u!114 &1347404468
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1347404463}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a34c1cb956d4f54439e75482d26e6baa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  boardController: {fileID: 0}
-  initialScale: 1
-  minScale: 0.05
-  shrinkRate: 0.0004
-  shrinkPerSpeed: 0.0000005
-  initialMass: 2
-  minMass: 0.1
-  gravityScale: 15
-  maxSpeed: 10
-  surfaceFriction: 0.05
-  reachedGoal: 0
-  alignmentSpeed: 8
-  boardHalfX: 4.5
-  boardHalfZ: 4.5
-  impactSound: {fileID: 1347404472}
-  vibrationDuration: 30
-  impactBreakThreshold: 6
---- !u!23 &1347404469
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1347404463}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 2100000, guid: 89e86ae623c318a4db3752fb58ff9020, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 0
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
---- !u!65 &1347404470
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1347404463}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!33 &1347404471
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1347404463}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1572937790
 GameObject:
   m_ObjectHideFlags: 0
@@ -1727,13 +1755,23 @@ MonoBehaviour:
   maxTiltAngle: 20
   sensitivityForward: 1.5
   sensitivitySide: 1.5
-  deadZone: 0.8
+  deadZoneInner: 0.5
+  deadZoneOuter: 2
   landscapeRight: 0
   landscapeFlipSide: 0
   followSpeed: 12
   tiltSmoothing: 3
+  responseCurve: 0.75
   calibrationDelay: 1.5
   calibrationSamples: 20
+  requireBothButtonsToMove: 1
+  buttonWidth: 180
+  buttonHeight: 180
+  buttonMargin: 30
+  leftButtonColor: {r: 0.2, g: 0.6, b: 1, a: 0.7}
+  rightButtonColor: {r: 0.2, g: 0.6, b: 1, a: 0.7}
+  desktopLeftKey: 113
+  desktopRightKey: 112
 --- !u!1 &1593747369
 GameObject:
   m_ObjectHideFlags: 0
@@ -1891,7 +1929,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 573233668}
         m_MethodName: TogglePause
         m_Mode: 1
         m_Arguments:

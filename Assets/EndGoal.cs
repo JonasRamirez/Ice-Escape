@@ -12,9 +12,11 @@ public class EndGoal : MonoBehaviour
     private float waitTime = 2f; // Tiempo que se muestra "Completado" antes de cambiar de escena
     private float timer = 0f;
     private bool levelCompleted = false;
+    private GameManager gameManager;
 
     void Start()
     {
+        gameManager = FindObjectOfType<GameManager>();
         CreateCompletadoUI();
     }
 
@@ -88,7 +90,7 @@ public class EndGoal : MonoBehaviour
         textGO.transform.SetParent(canvasGO.transform, false);
 
         completadoText = textGO.AddComponent<Text>();
-        completadoText.text = "Nivel " + LevelManager.currentLevel + " Completado";
+        completadoText.text = "Nivel Completado!";
         completadoText.fontSize = 60;
         completadoText.alignment = TextAnchor.MiddleCenter;
         completadoText.color = Color.white;
@@ -224,15 +226,6 @@ public class EndGoal : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        int nextLevel = LevelManager.currentLevel + 1;
-
-        if (nextLevel <= 5)
-        {
-            Application.LoadLevel("level" + nextLevel);
-        }
-        else
-        {
-            Application.LoadLevel("levelselectorscene");
-        }
+        gameManager.CompleteLevel();
     }
 }
