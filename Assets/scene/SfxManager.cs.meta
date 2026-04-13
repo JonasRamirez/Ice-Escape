@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 086cc21fe82e064428ef25c3b9a9807a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - musicSource: {instanceID: 0}
+  - sfxSource: {instanceID: 0}
+  - deathSound: {fileID: 8300000, guid: 8b94102ace921b1479e8f5ff44894e02, type: 3}
+  - winSound: {fileID: 8300000, guid: 3bdb2008c998acf4b858aa09b832e26c, type: 3}
+  - buttonSound: {instanceID: 0}
+  - music: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

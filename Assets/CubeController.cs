@@ -159,6 +159,7 @@ public class CubeController : MonoBehaviour
     // ─────────────────────────────────────────
     private Rigidbody rb;
     private GameObject gameOverCanvas;
+    private SfxManager sfxManager;
     private float currentScale;
     private float totalShrinkRange;
     private bool isDead = false;
@@ -181,6 +182,7 @@ public class CubeController : MonoBehaviour
         cachedRenderer = GetComponent<Renderer>();
         cachedCollider = GetComponent<Collider>();
 
+        sfxManager = FindObjectOfType<SfxManager>();
         currentScale = initialScale;
         totalShrinkRange = 20 + initialScale - minScale;
 
@@ -655,7 +657,7 @@ public class CubeController : MonoBehaviour
         rb.isKinematic = true;
 
         Debug.Log("[CubeController] Player murió por colisión.");
-
+        sfxManager.PlayDeath();
         gameOverCanvas.SetActive(true);
         Vibrate(200, true);
         //RestartLevel();
@@ -785,6 +787,7 @@ public class CubeController : MonoBehaviour
 
     IEnumerator RestartLevelAfterDelay(float delay)
     {
+        sfxManager.PlayDeath();
         yield return new WaitForSecondsRealtime(delay);
         gameOverCanvas.SetActive(true);
         //RestartLevel();
@@ -995,6 +998,7 @@ public class CubeController : MonoBehaviour
     {
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
+        sfxManager.PlayDeath();
         gameOverCanvas.SetActive(true);
         Time.timeScale = 0f; // Opcional: pausar el juego
     }

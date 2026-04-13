@@ -403,6 +403,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  txtLvlDisplay: {fileID: 0}
 --- !u!4 &279455292
 Transform:
   m_ObjectHideFlags: 0
@@ -424,10 +425,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 279455290}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa8639023f36b5a4bb50dc545d9efe52, type: 3}
+  m_Script: {fileID: 11500000, guid: 086cc21fe82e064428ef25c3b9a9807a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  txtLvlDisplay: {fileID: 0}
+  musicSource: {fileID: 0}
+  sfxSource: {fileID: 0}
+  deathSound: {fileID: 0}
+  winSound: {fileID: 0}
+  buttonSound: {fileID: 0}
+  music: {fileID: 0}
+  musicVolume: 0.5
+  sfxVolume: 0.7
 --- !u!1 &525299457
 GameObject:
   m_ObjectHideFlags: 0
@@ -723,8 +731,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 279455293}
+      - m_Target: {fileID: 279455291}
         m_MethodName: GoToLevelSelector
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 279455293}
+        m_MethodName: PlayButton
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

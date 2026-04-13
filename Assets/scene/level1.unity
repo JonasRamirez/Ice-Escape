@@ -2069,6 +2069,7 @@ GameObject:
   - component: {fileID: 1871929154}
   - component: {fileID: 1871929155}
   - component: {fileID: 1871929156}
+  - component: {fileID: 1871929157}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -2132,6 +2133,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  txtLvlDisplay: {fileID: 0}
 --- !u!114 &1871929155
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2151,10 +2153,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 1871929150}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa8639023f36b5a4bb50dc545d9efe52, type: 3}
+  m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   txtLvlDisplay: {fileID: 0}
+--- !u!114 &1871929157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1871929150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 086cc21fe82e064428ef25c3b9a9807a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  musicSource: {fileID: 0}
+  sfxSource: {fileID: 0}
+  deathSound: {fileID: 8300000, guid: 8b94102ace921b1479e8f5ff44894e02, type: 3}
+  winSound: {fileID: 8300000, guid: 3bdb2008c998acf4b858aa09b832e26c, type: 3}
+  buttonSound: {fileID: 0}
+  music: {fileID: 0}
+  musicVolume: 0.5
+  sfxVolume: 0.7
 --- !u!1 &1977317333
 GameObject:
   m_ObjectHideFlags: 0

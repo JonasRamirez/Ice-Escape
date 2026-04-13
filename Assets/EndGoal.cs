@@ -14,10 +14,12 @@ public class EndGoal : MonoBehaviour
     private float timer = 0f;
     private bool levelCompleted = false;
     private GameManager gameManager;
+    private SfxManager sfxManager;
 
     void Start()
     {
         gameManager = FindObjectOfType<GameManager>();
+        sfxManager = FindObjectOfType<SfxManager>();
         CreateCompletadoUI();
     }
 
@@ -169,8 +171,11 @@ public class EndGoal : MonoBehaviour
         if (cube != null)
             cube.reachedGoal = true;
 
+        
+
         // Mostrar UI
         completadoCanvas.SetActive(true);
+        sfxManager.PlayWin();
 
         // Pausar juego
         Time.timeScale = 0f;
