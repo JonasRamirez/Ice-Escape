@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine;
 
-
 [RequireComponent(typeof(Rigidbody))]
 public class CubeController : MonoBehaviour
 {
@@ -54,7 +53,6 @@ public class CubeController : MonoBehaviour
     [Tooltip("Qué tan rápido el cubo se alinea visualmente con la inclinación del tablero")]
     public float alignmentSpeed = 16f;
 
-
     // ─────────────────────────────────────────
     //  LÍMITES DEL TABLERO
     // ─────────────────────────────────────────
@@ -70,7 +68,41 @@ public class CubeController : MonoBehaviour
     [Tooltip("Array de sonidos de impacto (seleccionará uno aleatorio)")]
     public AudioClip[] impactSounds;
 
-    [Tooltip("Si está activado, varía ligeramente el pitch del sonido")]
+    [Header("Sonido de Fuego")]
+    [Tooltip("AudioSource exclusivo para el sonido al tocar fuego (descongelamiento)")]
+    public AudioSource fireSound;
+
+    [Tooltip("Clips de sonido de fuego (seleccionará uno aleatorio si hay varios)")]
+    public AudioClip[] fireSounds;
+
+    [Tooltip("Si está activado, varía ligeramente el pitch del sonido de fuego")]
+    public bool randomizeFirePitch = true;
+
+    [Tooltip("Rango de variación del pitch para fuego (mínimo y máximo)")]
+    public Vector2 firePitchRange = new Vector2(0.9f, 1.1f);
+
+    [Tooltip("Volumen del sonido de fuego (1 = volumen del AudioSource)")]
+    [Range(0f, 1f)]
+    public float fireVolume = 1f;
+
+    [Header("Sonido de Rotura")]
+    [Tooltip("AudioSource exclusivo para el sonido de rompimiento del bloque (debe tener iceCubeCrushing asignado)")]
+    public AudioSource iceCubeCrushingSound;
+
+    [Tooltip("Clips de sonido de rotura (seleccionará uno aleatorio si hay varios)")]
+    public AudioClip[] breakSounds;
+
+    [Tooltip("Si está activado, varía ligeramente el pitch del sonido de rotura")]
+    public bool randomizeBreakPitch = true;
+
+    [Tooltip("Rango de variación del pitch para rotura (mínimo y máximo)")]
+    public Vector2 breakPitchRange = new Vector2(0.7f, 1.3f);
+
+    [Tooltip("Volumen del sonido de rotura (1 = volumen del AudioSource)")]
+    [Range(0f, 1f)]
+    public float breakVolume = 1f;
+
+    [Tooltip("Si está activado, varía ligeramente el pitch del sonido de impacto")]
     public bool randomizePitch = true;
 
     [Tooltip("Rango de variación del pitch (mínimo y máximo)")]
@@ -121,7 +153,6 @@ public class CubeController : MonoBehaviour
     [Range(0f, 1f)]
     public float wallNormalLimit = 0.45f;
 
-
     // ─────────────────────────────────────────
     //  PRIVADOS
     // ─────────────────────────────────────────
@@ -132,10 +163,11 @@ public class CubeController : MonoBehaviour
     private bool isGrounded = false;
     public bool IsGrounded { get { return isGrounded; } }
     private Vector3 lastDebugForce = Vector3.zero;
-    private GyroscopeSceneController sceneController; // Variable local para el controlador
+    private GyroscopeSceneController sceneController;
     private Transform boardTransform;
     private float lastImpactFeedbackTime = float.NegativeInfinity;
-    private float originalPitch; // Para guardar el pitch original del AudioSource
+    private float originalPitch;
+    private float originalBreakPitch;
     private Coroutine restartCoroutine;
     private Renderer cachedRenderer;
     private Collider cachedCollider;
@@ -154,15 +186,15 @@ public class CubeController : MonoBehaviour
 
         SetupRigidbody();
         ConfigureImpactSound();
+        ConfigureBreakSound();
+        ConfigureFireSound();
 
         // Buscar el controlador automáticamente
         if (boardController == null && transform.parent != null)
         {
-            // Intentar obtener el componente del padre
             sceneController = transform.parent.GetComponent<GyroscopeSceneController>();
             if (sceneController == null)
             {
-                // Si no está en el padre, buscar en toda la escena
                 sceneController = FindObjectOfType<GyroscopeSceneController>();
                 if (sceneController != null)
                 {
@@ -181,7 +213,6 @@ public class CubeController : MonoBehaviour
         }
         else
         {
-            // Último intento: buscar por nombre
             GameObject laberynth = GameObject.Find("Laberynth");
             if (laberynth != null)
             {
@@ -208,7 +239,6 @@ public class CubeController : MonoBehaviour
 
         boardTransform = sceneController.transform;
 
-        // Un Rigidbody no debe heredar la rotación del tablero o deja de responder de forma natural.
         if (transform.parent == boardTransform)
         {
             transform.SetParent(null, true);
@@ -238,11 +268,17 @@ public class CubeController : MonoBehaviour
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    //  CONFIGURACIÓN DE AUDIO
+    // ─────────────────────────────────────────────────────────────────────
     void ConfigureImpactSound()
     {
+        // Si no está asignado manualmente, buscar el primer AudioSource del objeto
         if (impactSound == null)
         {
-            impactSound = GetComponent<AudioSource>();
+            AudioSource[] sources = GetComponents<AudioSource>();
+            if (sources.Length > 0)
+                impactSound = sources[0];
         }
 
         if (impactSound == null)
@@ -258,14 +294,205 @@ public class CubeController : MonoBehaviour
 
         impactSound.playOnAwake = false;
         impactSound.loop = false;
-
-        // Guardar el pitch original
-        if (impactSound != null)
-        {
-            originalPitch = impactSound.pitch;
-        }
+        originalPitch = impactSound.pitch;
     }
 
+    void ConfigureBreakSound()
+    {
+        // Si no está asignado manualmente, buscar un segundo AudioSource distinto al de impacto
+        if (iceCubeCrushingSound == null)
+        {
+            AudioSource[] sources = GetComponents<AudioSource>();
+            foreach (AudioSource src in sources)
+            {
+                if (src != impactSound)
+                {
+                    iceCubeCrushingSound = src;
+                    break;
+                }
+            }
+        }
+
+        // Fallback: buscar en hijos (distinto al de impacto)
+        if (iceCubeCrushingSound == null)
+        {
+            AudioSource[] childSources = GetComponentsInChildren<AudioSource>(true);
+            foreach (AudioSource src in childSources)
+            {
+                if (src != impactSound)
+                {
+                    iceCubeCrushingSound = src;
+                    break;
+                }
+            }
+        }
+
+        if (iceCubeCrushingSound == null)
+        {
+            Debug.LogWarning("[CubeController] No se encontró un AudioSource exclusivo para rotura en " + gameObject.name + ". Asigna 'iceCubeCrushingSound' manualmente en el Inspector.");
+            return;
+        }
+
+        iceCubeCrushingSound.playOnAwake = false;
+        iceCubeCrushingSound.loop = false;
+        originalBreakPitch = iceCubeCrushingSound.pitch;
+
+        Debug.Log("[CubeController] AudioSource de rotura configurado: " + iceCubeCrushingSound.gameObject.name);
+    }
+
+    void ConfigureFireSound()
+    {
+        if (fireSound == null)
+        {
+            AudioSource[] sources = GetComponents<AudioSource>();
+            foreach (AudioSource src in sources)
+            {
+                if (src != impactSound && src != iceCubeCrushingSound)
+                {
+                    fireSound = src;
+                    break;
+                }
+            }
+        }
+
+        if (fireSound == null)
+        {
+            AudioSource[] childSources = GetComponentsInChildren<AudioSource>(true);
+            foreach (AudioSource src in childSources)
+            {
+                if (src != impactSound && src != iceCubeCrushingSound)
+                {
+                    fireSound = src;
+                    break;
+                }
+            }
+        }
+
+        if (fireSound == null)
+        {
+            Debug.LogWarning("[CubeController] No se encontró AudioSource para fuego en " + gameObject.name + ". Asigna 'fireSound' manualmente en el Inspector.");
+            return;
+        }
+
+        fireSound.playOnAwake = false;
+        fireSound.loop = false;
+        Debug.Log("[CubeController] AudioSource de fuego configurado: " + fireSound.gameObject.name);
+    }
+
+    void PlayFireSound()
+    {
+        if (fireSound == null)
+        {
+            ConfigureFireSound();
+            if (fireSound == null) return;
+        }
+
+        AudioClip clipToPlay = null;
+
+        if (fireSounds != null && fireSounds.Length > 0)
+        {
+            List<AudioClip> validClips = new List<AudioClip>();
+            foreach (AudioClip clip in fireSounds)
+            {
+                if (clip != null) validClips.Add(clip);
+            }
+
+            if (validClips.Count > 0)
+            {
+                clipToPlay = validClips[Random.Range(0, validClips.Count)];
+                Debug.Log("[CubeController] Reproduciendo clip de fuego aleatorio: " + clipToPlay.name);
+            }
+        }
+
+        if (clipToPlay == null && fireSound.clip != null)
+        {
+            clipToPlay = fireSound.clip;
+            Debug.Log("[CubeController] Usando clip del AudioSource de fuego: " + clipToPlay.name);
+        }
+
+        if (clipToPlay == null)
+        {
+            Debug.LogWarning("[CubeController] fireSound no tiene ningún AudioClip asignado.");
+            return;
+        }
+
+        if (randomizeFirePitch)
+        {
+            fireSound.pitch = Random.Range(firePitchRange.x, firePitchRange.y);
+        }
+
+        fireSound.PlayOneShot(clipToPlay, fireVolume);
+        Debug.Log("[CubeController] Sonido de fuego reproducido: " + clipToPlay.name);
+    }
+
+    void PlayBreakSound()
+    {
+        if (iceCubeCrushingSound == null)
+        {
+            ConfigureBreakSound();
+            if (iceCubeCrushingSound == null)
+            {
+                Debug.LogWarning("[CubeController] No hay AudioSource de rotura disponible.");
+                return;
+            }
+        }
+
+        // Elegir clip: primero del array breakSounds, luego el clip del AudioSource
+        AudioClip clipToPlay = null;
+
+        if (breakSounds != null && breakSounds.Length > 0)
+        {
+            List<AudioClip> validClips = new List<AudioClip>();
+            foreach (AudioClip clip in breakSounds)
+            {
+                if (clip != null) validClips.Add(clip);
+            }
+
+            if (validClips.Count > 0)
+            {
+                clipToPlay = validClips[Random.Range(0, validClips.Count)];
+                Debug.Log("[CubeController] Reproduciendo clip de rotura aleatorio: " + clipToPlay.name);
+            }
+        }
+
+        if (clipToPlay == null && iceCubeCrushingSound.clip != null)
+        {
+            clipToPlay = iceCubeCrushingSound.clip;
+            Debug.Log("[CubeController] Usando clip del AudioSource de rotura: " + clipToPlay.name);
+        }
+
+        if (clipToPlay == null)
+        {
+            Debug.LogWarning("[CubeController] iceCubeCrushingSound no tiene ningún AudioClip asignado. Asigna 'iceCubeCrushing' en el Inspector.");
+            return;
+        }
+
+        // Variación de pitch
+        if (randomizeBreakPitch)
+        {
+            iceCubeCrushingSound.pitch = Random.Range(breakPitchRange.x, breakPitchRange.y);
+            Debug.Log("[CubeController] Pitch de rotura ajustado a: " + iceCubeCrushingSound.pitch);
+        }
+
+        iceCubeCrushingSound.PlayOneShot(clipToPlay, breakVolume);
+
+        // Restaurar pitch tras la reproducción
+        if (randomizeBreakPitch)
+        {
+            StartCoroutine(RestoreBreakPitchAfterDelay(clipToPlay.length));
+        }
+
+        Debug.Log("[CubeController] Sonido de rotura reproducido: " + clipToPlay.name);
+    }
+
+    IEnumerator RestoreBreakPitchAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (iceCubeCrushingSound != null)
+        {
+            iceCubeCrushingSound.pitch = originalBreakPitch;
+        }
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     //  DETECCIÓN DE COLISIONES
@@ -295,19 +522,16 @@ public class CubeController : MonoBehaviour
         float feedbackThreshold = Mathf.Max(0.01f, Mathf.Min(impactBreakThreshold, impactDestroy));
         float destroyThreshold = Mathf.Max(impactBreakThreshold, impactDestroy);
 
-        // Impacto No tan fuerte
         if (impactForce >= feedbackThreshold)
         {
             TriggerImpactFeedback();
         }
 
-        // Impacto FUERTE 
         if (isWallImpact && impactForce >= destroyThreshold)
         {
             TriggerBreak(collision);
             return;
         }
-
     }
 
     void OnCollisionExit(Collision collision)
@@ -351,7 +575,7 @@ public class CubeController : MonoBehaviour
 
         Debug.Log("[CubeController] Cubo se rompió por impacto fuerte.");
 
-        // Vibración más fuerte al romperse
+        PlayBreakSound();
         Vibrate(breakVibrationDuration, true);
 
         SpawnBreakFragments(collision, preBreakVelocity);
@@ -380,7 +604,6 @@ public class CubeController : MonoBehaviour
 
     void SpawnBreakFragments(Collision collision, Vector3 preBreakVelocity)
     {
-        // Forzar al menos 2x2x2 fragmentos para que se vea bien
         int piecesX = Mathf.Max(2, breakPieces.x);
         int piecesY = Mathf.Max(2, breakPieces.y);
         int piecesZ = Mathf.Max(2, breakPieces.z);
@@ -390,7 +613,7 @@ public class CubeController : MonoBehaviour
             transform.lossyScale.x / piecesX,
             transform.lossyScale.y / piecesY,
             transform.lossyScale.z / piecesZ);
-        
+
         float smallerPieces = 0.9f;
         pieceSize *= smallerPieces;
 
@@ -409,10 +632,10 @@ public class CubeController : MonoBehaviour
             Rigidbody shardRb = shard.AddComponent<Rigidbody>();
             shardRb.mass = rb.mass / totalPieces;
             shardRb.interpolation = RigidbodyInterpolation.Interpolate;
-            
+
             Vector3 randomDir = Random.onUnitSphere;
-            randomDir.y = Mathf.Abs(randomDir.y); 
-            
+            randomDir.y = Mathf.Abs(randomDir.y);
+
             float forceMultiplier = 0.005f;
             shardRb.AddForce(randomDir * breakExplosionForce * sizeMultiplier * forceMultiplier, ForceMode.Force);
             shardRb.AddTorque(Random.insideUnitSphere * breakTorque * sizeMultiplier * 0.1f, ForceMode.Force);
@@ -430,14 +653,12 @@ public class CubeController : MonoBehaviour
 
         Debug.Log("[CubeController] Player murió por colisión.");
 
-
-        // Reiniciar nivel después de un pequeño delay (opcional)
         RestartLevel();
     }
 
-
     void TriggerImpactFeedback()
     {
+        if (isDead) return;
         if (Time.time - lastImpactFeedbackTime < impactFeedbackCooldown) return;
 
         lastImpactFeedbackTime = Time.time;
@@ -452,12 +673,10 @@ public class CubeController : MonoBehaviour
             if (impactSound == null) return;
         }
 
-        // Seleccionar un sonido aleatorio del array
         AudioClip clipToPlay = null;
 
         if (impactSounds != null && impactSounds.Length > 0)
         {
-            // Filtrar clips nulos
             List<AudioClip> validClips = new List<AudioClip>();
             foreach (var clip in impactSounds)
             {
@@ -472,7 +691,6 @@ public class CubeController : MonoBehaviour
             }
         }
 
-        // Si no hay sonidos en el array o todos son nulos, usar el clip por defecto del AudioSource
         if (clipToPlay == null && impactSound.clip != null)
         {
             clipToPlay = impactSound.clip;
@@ -485,16 +703,13 @@ public class CubeController : MonoBehaviour
             return;
         }
 
-        // Randomizar pitch si está activado
         if (randomizePitch && impactSound != null)
         {
             impactSound.pitch = Random.Range(pitchRange.x, pitchRange.y);
         }
 
-        // Reproducir el sonido
         impactSound.PlayOneShot(clipToPlay);
 
-        // Restaurar el pitch original después de un breve momento
         if (randomizePitch && impactSound != null)
         {
             StartCoroutine(RestorePitchAfterDelay(clipToPlay.length));
@@ -569,8 +784,6 @@ public class CubeController : MonoBehaviour
         RestartLevel();
     }
 
-
-
     void RestartLevel()
     {
         Time.timeScale = 1f;
@@ -586,41 +799,29 @@ public class CubeController : MonoBehaviour
 
         ApplyFriction();
         ClampSpeed();
-
     }
 
-    /// <summary>
-    /// Proyecta la gravedad global sobre el plano del tablero.
-    /// Resultado: el cubo se desliza en la dirección de la pendiente.
-    /// </summary>
     void ApplySurfaceGravity()
     {
         if (sceneController == null) return;
 
-        Vector3 boardNormal = sceneController.BoardUp;   // Normal del tablero en mundo
+        Vector3 boardNormal = sceneController.BoardUp;
         Vector3 gravity = Vector3.down * gravityScale;
 
-        // Componente de la gravedad paralela a la superficie (la que produce deslizamiento)
         Vector3 gravityOnSurface = gravity - Vector3.Dot(gravity, boardNormal) * boardNormal;
 
         lastDebugForce = gravityOnSurface;
 
-        // Solo aplicar gravedad si está en contacto con el tablero
         if (isGrounded)
         {
             rb.AddForce(gravityOnSurface, ForceMode.Acceleration);
         }
         else
         {
-            // Si está en el aire, aplicar gravedad normal hacia abajo
             rb.AddForce(Vector3.down * gravityScale, ForceMode.Acceleration);
         }
     }
 
-    /// <summary>
-    /// Aplica fricción manual para evitar que el cubo siga acelerando infinitamente
-    /// cuando el tablero está casi horizontal.
-    /// </summary>
     void ApplyFriction()
     {
         if (isGrounded && rb.velocity.magnitude > 0.01f)
@@ -637,7 +838,7 @@ public class CubeController : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  UPDATE — Encogimiento + alineación + rastro
+    //  UPDATE
     // ─────────────────────────────────────────────────────────────────────
     void Update()
     {
@@ -648,29 +849,22 @@ public class CubeController : MonoBehaviour
         UpdatePhysicsBasedOnSize();
     }
 
-    /// <summary>
-    /// Rota el cubo para que su cara inferior quede paralela al tablero.
-    /// Esto da el efecto de que "se adapta" a la inclinación visualmente.
-    /// </summary>
     void AlignToBoardSurface()
     {
         if (sceneController == null || !isGrounded) return;
 
-        // La rotación objetivo es la misma que la del tablero padre
         Quaternion targetRotation = sceneController.transform.rotation;
 
         transform.rotation = Quaternion.Slerp(
             transform.rotation, targetRotation, Time.deltaTime * alignmentSpeed);
     }
 
-    // Modifica Shrink() así:
     void Shrink()
     {
         if (reachedGoal) return;
 
         float speed = rb.velocity.magnitude;
         currentScale -= shrinkPerSpeed * speed * 600;
-
 
         if (currentScale <= minScale)
         {
@@ -692,9 +886,6 @@ public class CubeController : MonoBehaviour
         maxSpeed = Mathf.Lerp(18f, 6f, lifePercent);
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  LÍMITES — El cubo no puede salir del tablero
-    // ─────────────────────────────────────────────────────────────────────
     void ClampPositionToBoard()
     {
         if (transform.parent == null) return;
@@ -702,10 +893,9 @@ public class CubeController : MonoBehaviour
         Vector3 localPos = transform.localPosition;
         Vector3 localVel = transform.parent.InverseTransformDirection(rb.velocity);
         float halfCube = currentScale * 0.5f;
-        float softZone = 0.3f; // zona de frenado antes del muro
+        float softZone = 0.3f;
         bool hitWall = false;
 
-        // Eje X
         float limitX = boardHalfX - halfCube;
         if (localPos.x > limitX)
         {
@@ -721,7 +911,6 @@ public class CubeController : MonoBehaviour
         }
         else if (localPos.x > limitX - softZone && localVel.x > 0)
         {
-            // Frenar suavemente al acercarse al borde
             float t = (localPos.x - (limitX - softZone)) / softZone;
             localVel.x -= localVel.x * t * 0.15f;
         }
@@ -731,7 +920,6 @@ public class CubeController : MonoBehaviour
             localVel.x -= localVel.x * t * 0.15f;
         }
 
-        // Eje Z
         float limitZ = boardHalfZ - halfCube;
         if (localPos.z > limitZ)
         {
@@ -758,7 +946,6 @@ public class CubeController : MonoBehaviour
 
         transform.localPosition = localPos;
         rb.velocity = transform.parent.TransformDirection(localVel);
-
     }
 
     void BounceOnAxis(ref Vector3 localPos, char axis, bool positive)
@@ -776,20 +963,15 @@ public class CubeController : MonoBehaviour
         rb.velocity = board.TransformDirection(localVel);
     }
 
-    /// <summary>
-    /// Reduce drásticamente el tamaño del cubo por contacto con una pared de fuego.
-    /// Se quita una fracción de la escala ACTUAL (no de la escala inicial),
-    /// así cada golpe duele más a medida que el cubo ya está pequeño.
-    /// </summary>
     public void ApplyFireDamage(float fraction)
     {
         if (isDead || reachedGoal) return;
 
-        // Quitamos la fracción de la escala ACTUAL
         float scaleToRemove = currentScale * fraction;
         currentScale -= scaleToRemove;
 
-        // Si cae por debajo del mínimo, el cubo muere normalmente
+        PlayFireSound();
+
         if (currentScale <= minScale)
         {
             currentScale = minScale;
@@ -798,16 +980,10 @@ public class CubeController : MonoBehaviour
             return;
         }
 
-        // Aplicar el cambio visual inmediatamente
         transform.localScale = Vector3.one * currentScale;
-
-        // Actualizar física con el nuevo tamaño
         UpdatePhysicsBasedOnSize();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  MUERTE
-    // ─────────────────────────────────────────────────────────────────────
     void OnCubeDied()
     {
         rb.velocity = Vector3.zero;
