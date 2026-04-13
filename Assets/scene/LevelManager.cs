@@ -1,83 +1,141 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
-using UnityEngine.UI; 
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-
 
 public class LevelManager : MonoBehaviour
 {
     [Header("Level Management")]
     public Text txtLvlDisplay;
 
-    private int currentLevelIndex;
     private string currentLevelName;
-    
+
     void Start()
     {
-        currentLevelIndex = SceneManager.GetActiveScene().buildIndex;
+        LevelProgress.Initialize();
         currentLevelName = SceneManager.GetActiveScene().name;
 
-        if (txtLvlDisplay != null)
+        if (txtLvlDisplay != null && currentLevelName.StartsWith("level"))
         {
             txtLvlDisplay.text = "Nivel " + ExtractLevelNumber(currentLevelName);
+        }
+
+        if (currentLevelName == "levelselectorscene")
+        {
+            RefreshLevelSelectorButtons();
         }
     }
 
     public int ExtractLevelNumber(string sceneName)
     {
         string numberPart = sceneName.Replace("level", "");
-        Debug.Log("[LevelManager] Lvl Number: " + int.Parse(numberPart));
-        return int.Parse(numberPart);
+        int levelNumber = int.Parse(numberPart);
+        Debug.Log("[LevelManager] Lvl Number: " + levelNumber);
+        return levelNumber;
     }
 
-    // Método para cargar cualquier escena por nombre
     public void LoadScene(string sceneName)
     {
-        Application.LoadLevel(sceneName);
+        string normalizedSceneName = NormalizeSceneName(sceneName);
+
+        if (!Application.CanStreamedLevelBeLoaded(normalizedSceneName))
+        {
+            Debug.LogError("La escena no se puede cargar: " + normalizedSceneName);
+            return;
+        }
+
+        SceneManager.LoadScene(normalizedSceneName);
     }
 
-    // Método para cargar por índice (más eficiente)
     public void LoadSceneByIndex(int sceneIndex)
     {
-        Application.LoadLevel(sceneIndex);
+        SceneManager.LoadScene(sceneIndex);
     }
 
-    // Método específico para ir al selector de niveles
     public void GoToLevelSelector()
     {
-        Application.LoadLevel("levelselectorscene");
+        SceneManager.LoadScene("levelselectorscene");
     }
 
-    // Método para ir al menú principal
     public void GoToMainMenu()
     {
-        Application.LoadLevel("mainscene");
+        SceneManager.LoadScene("mainscene");
     }
 
-    // Método para cargar niveles específicos
     public void LoadLevel(int levelNumber)
     {
-        if (levelNumber >= 1 && levelNumber <= 5)
+        if (levelNumber < 1 || levelNumber > 5)
         {
-            Application.LoadLevel("level" + levelNumber);
+            Debug.LogError("Nivel no valido: " + levelNumber);
+            return;
         }
-        else
+
+        if (!LevelProgress.IsLevelUnlocked(levelNumber))
         {
-            Debug.LogError("Nivel no válido: " + levelNumber);
+            Debug.Log("Nivel bloqueado: " + levelNumber);
+            return;
         }
+
+        string sceneName = "level" + levelNumber;
+        if (!Application.CanStreamedLevelBeLoaded(sceneName))
+        {
+            Debug.LogError("La escena no se puede cargar: " + sceneName);
+            return;
+        }
+
+        SceneManager.LoadScene(sceneName);
     }
 
     public void LoadNextLevel()
     {
-        if (currentLevelIndex < 5)
+        if (!currentLevelName.StartsWith("level"))
         {
-            Application.LoadLevel("level" + (currentLevelIndex + 1));
+            GoToMainMenu();
+            return;
+        }
+
+        int currentLevelNumber = ExtractLevelNumber(currentLevelName);
+        if (currentLevelNumber < 5)
+        {
+            LoadLevel(currentLevelNumber + 1);
         }
         else
         {
             GoToMainMenu();
+        }
+    }
+
+    private string NormalizeSceneName(string sceneName)
+    {
+        int levelNumber;
+        if (int.TryParse(sceneName, out levelNumber))
+        {
+            return "level" + levelNumber;
+        }
+
+        return sceneName;
+    }
+
+    private void RefreshLevelSelectorButtons()
+    {
+        Button[] buttons = FindObjectsOfType<Button>();
+
+        foreach (Button button in buttons)
+        {
+            Text buttonText = button.GetComponentInChildren<Text>();
+            if (buttonText == null)
+            {
+                continue;
+            }
+
+            int levelNumber;
+            if (!int.TryParse(buttonText.text.Trim(), out levelNumber))
+            {
+                continue;
+            }
+
+            LevelProgress.ApplyButtonState(button, levelNumber);
         }
     }
 }

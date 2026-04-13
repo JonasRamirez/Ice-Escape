@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class EndGoal : MonoBehaviour
 {
@@ -103,14 +104,15 @@ public class EndGoal : MonoBehaviour
         textRect.anchoredPosition = Vector2.zero;
 
         // =========================
+        // ▶ BOTÓN CONTINUAR
+        // =========================
+        CreateButton(canvasGO.transform, "Continuar", new Vector2(0, -130), NextLevel);
+
+        // =========================
         // 🔁 BOTÓN REINTENTAR
         // =========================
         CreateButton(canvasGO.transform, "Reintentar", new Vector2(0, -50), RestartLevel);
 
-        // =========================
-        // ▶ BOTÓN CONTINUAR
-        // =========================
-        CreateButton(canvasGO.transform, "Continuar", new Vector2(0, -130), NextLevel);
 
         // Oculto al inicio
         canvasGO.SetActive(false);
@@ -162,27 +164,9 @@ public class EndGoal : MonoBehaviour
 
     void SaveProgress()
     {
-        // Obtener el nivel actual desde el nombre de la escena
-        string sceneName = Application.loadedLevelName;
+        string sceneName = SceneManager.GetActiveScene().name;
         int currentLevel = ExtractLevelNumber(sceneName);
-
-        // Desbloquear el siguiente nivel
-        int nextLevel = currentLevel + 1;
-
-        if (nextLevel <= 5)
-        {
-            // Guardar en PlayerPrefs qué niveles están desbloqueados
-            if (PlayerPrefs.GetInt("Level" + nextLevel + "_Unlocked", 0) == 0)
-            {
-                PlayerPrefs.SetInt("Level" + nextLevel + "_Unlocked", 1);
-                PlayerPrefs.Save();
-                Debug.Log("¡Nivel " + nextLevel + " desbloqueado!");
-            }
-        }
-
-        // Marcar nivel actual como completado
-        PlayerPrefs.SetInt("Level" + currentLevel + "_Completed", 1);
-        PlayerPrefs.Save();
+        LevelProgress.CompleteLevel(currentLevel);
     }
 
     int ExtractLevelNumber(string sceneName)
@@ -224,7 +208,29 @@ public class EndGoal : MonoBehaviour
 
     void NextLevel()
     {
-        gameManager.CompleteLevel();
+        // Obtener el número del nivel actual
+        string currentScene = Application.loadedLevelName;
+        int currentLevelNumber = ExtractLevelNumber(currentScene);
+
+        // Calcular el siguiente nivel
+        int nextLevelNumber = currentLevelNumber + 1;
+        string nextSceneName = "level" + nextLevelNumber;
+
+        // Restaurar timeScale
         Time.timeScale = 1f;
+
+        // Verificar si existe el siguiente nivel
+        // Nota: Necesitas tener una lista de niveles o verificar si la escena existe
+        if (Application.CanStreamedLevelBeLoaded(nextSceneName))
+        {
+            // Cargar el siguiente nivel
+            Application.LoadLevel(nextSceneName);
+        }
+        else
+        {
+            // Si no hay más niveles, ir al selector o menu principal
+            Debug.Log("¡Juego completado! No hay más niveles.");
+            Application.LoadLevel("levelselectorscene"); // O "MainMenu" según prefieras
+        }
     }
 }

@@ -1,83 +1,77 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; 
-using System.Collections;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-
     private LevelManager levelManagerManager;
     public static int currentLevel = 1;
 
     void Start()
     {
+        LevelProgress.Initialize();
         levelManagerManager = FindObjectOfType<LevelManager>();
-        //Debug.Log("Cargando nivel " + currentLevel);
-
+        RefreshLevelSelectorButtons();
     }
 
-    // Nueva función que lee el texto del botón que llamó al método
     public void SendLevelFromButton(Button button)
     {
-        // Obtener el texto del botón
         string buttonText = button.GetComponentInChildren<Text>().text;
-
-        // Intentar convertir el texto a número
         int levelNumber;
 
         if (int.TryParse(buttonText, out levelNumber))
         {
-            // Si el texto es un número, cargar ese nivel
-            currentLevel = levelNumber;
-            Application.LoadLevel("level" + levelNumber);
-            Debug.Log("Cargando nivel " + levelNumber + " desde botón con texto: " + buttonText);
+            LoadUnlockedLevel(levelNumber, "desde boton con texto: " + buttonText);
         }
         else
         {
-            Debug.LogError("El texto del botón no es un número válido: " + buttonText);
+            Debug.LogError("El texto del boton no es un numero valido: " + buttonText);
         }
     }
 
-    // Versión alternativa: si el botón tiene un componente Text específico
     public void SendLevelFromText(Text buttonText)
     {
-        // Obtener el texto
         string text = buttonText.text;
-
-        // Intentar convertir a número
         int levelNumber;
 
         if (int.TryParse(text, out levelNumber))
         {
-            Application.LoadLevel("level" + levelNumber);
-            Debug.Log("Cargando nivel " + levelNumber);
+            LoadUnlockedLevel(levelNumber, "desde texto");
         }
         else
         {
-            Debug.LogError("El texto no es un número válido: " + text);
+            Debug.LogError("El texto no es un numero valido: " + text);
         }
     }
 
-    // Versión aún más simple: usar string directamente
     public void SendLevelFromString(string levelName)
     {
         int levelNumber = int.Parse(levelName);
-        currentLevel = levelNumber;
-        Application.LoadLevel("level" + levelName);
-        Debug.Log("Cargando nivel: level" + levelName);
+        LoadUnlockedLevel(levelNumber, "desde string");
     }
 
-    // Método para completar el nivel
     public void CompleteLevel()
     {
-        
-        currentLevel = levelManagerManager.ExtractLevelNumber(Application.loadedLevelName);
+        if (levelManagerManager != null)
+        {
+            currentLevel = levelManagerManager.ExtractLevelNumber(Application.loadedLevelName);
+        }
+        else
+        {
+            int parsedLevel;
+            if (int.TryParse(Application.loadedLevelName.Replace("level", ""), out parsedLevel))
+            {
+                currentLevel = parsedLevel;
+            }
+        }
+
+        LevelProgress.CompleteLevel(currentLevel);
         Debug.Log("[GameManager] Nivel Completado: " + currentLevel);
-        if (currentLevel < 5)
+
+        if (currentLevel < LevelProgress.TotalLevels)
         {
             Application.LoadLevel("level" + (currentLevel + 1));
-            
         }
         else
         {
@@ -88,12 +82,45 @@ public class GameManager : MonoBehaviour
     public void RestartLevel()
     {
         Application.LoadLevel("level" + currentLevel);
-        
     }
 
-    // Método para volver al selector
     public void BackToSelector()
     {
         Application.LoadLevel("levelselectorscene");
+    }
+
+    private void LoadUnlockedLevel(int levelNumber, string source)
+    {
+        if (!LevelProgress.IsLevelUnlocked(levelNumber))
+        {
+            Debug.Log("Nivel bloqueado: " + levelNumber);
+            return;
+        }
+
+        currentLevel = levelNumber;
+        Application.LoadLevel("level" + levelNumber);
+        Debug.Log("Cargando nivel " + levelNumber + " " + source);
+    }
+
+    private void RefreshLevelSelectorButtons()
+    {
+        Button[] buttons = FindObjectsOfType<Button>();
+
+        foreach (Button button in buttons)
+        {
+            Text buttonText = button.GetComponentInChildren<Text>();
+            if (buttonText == null)
+            {
+                continue;
+            }
+
+            int levelNumber;
+            if (!int.TryParse(buttonText.text.Trim(), out levelNumber))
+            {
+                continue;
+            }
+
+            LevelProgress.ApplyButtonState(button, levelNumber);
+        }
     }
 }
