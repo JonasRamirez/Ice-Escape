@@ -121,7 +121,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 21913744}
-  - component: {fileID: 21913743}
   - component: {fileID: 21913745}
   m_Layer: 0
   m_Name: GameManager
@@ -130,18 +129,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &21913743
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 21913742}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa8639023f36b5a4bb50dc545d9efe52, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  txtLvlDisplay: {fileID: 0}
 --- !u!4 &21913744
 Transform:
   m_ObjectHideFlags: 0
@@ -166,6 +153,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 791382284a6c5e745b68a24efd42be4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  txtLvlDisplay: {fileID: 0}
 --- !u!1 &48634116
 GameObject:
   m_ObjectHideFlags: 0
@@ -242,7 +230,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 21913743}
+      - m_Target: {fileID: 21913745}
         m_MethodName: LoadLevel
         m_Mode: 3
         m_Arguments:
@@ -504,14 +492,14 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 21913745}
-        m_MethodName: GoToMainMenu
-        m_Mode: 1
+        m_MethodName: LoadScene
+        m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: 
+          m_StringArgument: mainscene
           m_BoolArgument: 0
         m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
@@ -699,7 +687,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 21913743}
+      - m_Target: {fileID: 21913745}
         m_MethodName: LoadLevel
         m_Mode: 3
         m_Arguments:
@@ -895,7 +883,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 21913743}
+      - m_Target: {fileID: 21913745}
         m_MethodName: LoadLevel
         m_Mode: 3
         m_Arguments:
@@ -1153,7 +1141,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 21913743}
+      - m_Target: {fileID: 21913745}
         m_MethodName: LoadLevel
         m_Mode: 3
         m_Arguments:
@@ -1346,7 +1334,7 @@ GameObject:
   - component: {fileID: 1566918301}
   - component: {fileID: 1566918300}
   m_Layer: 5
-  m_Name: Text
+  m_Name: txtSelectLevel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1559,7 +1547,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 21913743}
+      - m_Target: {fileID: 21913745}
         m_MethodName: LoadLevel
         m_Mode: 3
         m_Arguments:
