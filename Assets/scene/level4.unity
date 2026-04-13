@@ -375,7 +375,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 130311015}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -4.64, y: 0.85, z: 0.45000002}
+  m_LocalPosition: {x: -4.64, y: 0.29500002, z: 0.45000002}
   m_LocalScale: {x: 0.43333, y: 0.14999999, z: 0.33333}
   m_Children: []
   m_Father: {fileID: 1043499202}
@@ -1251,7 +1251,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 728631772}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.67, y: 1.5, z: -2.2800002}
+  m_LocalPosition: {x: 2.67, y: 0.945, z: -2.2800002}
   m_LocalScale: {x: 0.39999, y: 1.5, z: 1.13639}
   m_Children: []
   m_Father: {fileID: 1043499202}
@@ -2317,7 +2317,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1784403604}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.77, y: 1.5, z: -2.24}
+  m_LocalPosition: {x: -2.77, y: 0.945, z: -2.24}
   m_LocalScale: {x: 0.39999, y: 1.5, z: 1.13639}
   m_Children: []
   m_Father: {fileID: 1043499202}
@@ -2482,7 +2482,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1821638249}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.35, y: 0.85, z: -0.9699999}
+  m_LocalPosition: {x: 2.35, y: 0.35, z: -0.9699999}
   m_LocalScale: {x: 0.43333, y: 0.14999999, z: 0.33333}
   m_Children: []
   m_Father: {fileID: 1043499202}
@@ -2663,7 +2663,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1875199169}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.64, z: 0}
   m_LocalScale: {x: 10, y: 1.5, z: 6}
   m_Children: []
   m_Father: {fileID: 1043499202}
@@ -3030,7 +3030,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1955465037}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.88, y: 0.945, z: 0.48}
+  m_LocalPosition: {x: -1.88, y: 0.39, z: 0.48}
   m_LocalScale: {x: 0.43333337, y: 0.29999998, z: 0.33333337}
   m_Children: []
   m_Father: {fileID: 1043499202}
