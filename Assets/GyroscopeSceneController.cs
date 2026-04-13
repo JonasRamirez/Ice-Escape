@@ -292,7 +292,7 @@ public class GyroscopeSceneController : MonoBehaviour
         float tiltSide = Mathf.Asin(Mathf.Clamp(rawSide, -0.99f, 0.99f)) * Mathf.Rad2Deg;
 
         // ⭐⭐⭐ MODIFICACIÓN PARA MOVIMIENTO MÁS EXAGERADO ⭐⭐⭐
-        float exaggerationMultiplier = 1.15f;
+        float exaggerationMultiplier = 1f;
         tiltForward *= exaggerationMultiplier;
         tiltSide *= exaggerationMultiplier;
 

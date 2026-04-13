@@ -2438,7 +2438,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waterMaterial: {fileID: 2100000, guid: d2d798faf084f6f4d8a8e57eddb12de5, type: 2}
   decalSize: 0.6
-  maxAlpha: 0.55
+  maxAlpha: 0.196
   minDistance: 0.08
   maxDecals: 200
   fadeOutTime: 1.5
@@ -2849,8 +2849,8 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2124246674}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.527, y: 0.35, z: -1.248}
-  m_LocalScale: {x: 0.3, y: 0.07, z: 0.2}
+  m_LocalPosition: {x: 1.624, y: 0.23, z: -1.246}
+  m_LocalScale: {x: 0.5, y: 0.07, z: 0.5}
   m_Children: []
   m_Father: {fileID: 1685473661}
   m_RootOrder: 9
@@ -2880,7 +2880,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 2100000, guid: d07ebe5449001d142856b540562381d7, type: 2}
+  - {fileID: 2100000, guid: 76207ca61434fc24f93b8b6ac0f7668e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

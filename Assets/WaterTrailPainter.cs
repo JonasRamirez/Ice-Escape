@@ -37,10 +37,10 @@ public class WaterTrailPainter : MonoBehaviour
 
     [Header("Límite de instancias")]
     [Tooltip("Número máximo de manchas en escena. Las más antiguas se desvanecen.")]
-    public int maxDecals = 200;
+    public int maxDecals = 100;
 
     [Tooltip("Tiempo en segundos que tarda en desvanecerse un decal antiguo cuando se llega al límite")]
-    public float fadeOutTime = 1.5f;
+    public float fadeOutTime = 1f;
 
     // ── Estado privado ──────────────────────────────────────────────────
     private CubeController cubeController;
